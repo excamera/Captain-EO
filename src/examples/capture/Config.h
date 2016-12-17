@@ -64,6 +64,8 @@ private:
 
 	IDeckLink* GetDeckLink(int idx);
 	IDeckLinkDisplayMode* GetDeckLinkDisplayMode(IDeckLink* deckLink, int idx);
+	BMDConfig( const BMDConfig & other ) = delete;
+	BMDConfig & operator=( const BMDConfig & other ) = delete;
 };
 
 #endif

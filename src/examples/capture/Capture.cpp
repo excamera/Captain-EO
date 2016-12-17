@@ -47,7 +47,7 @@ static BMDConfig		g_config;
 
 static IDeckLinkInput*	g_deckLinkInput = NULL;
 
-static unsigned long	g_frameCount = 0;
+static int64_t	g_frameCount = 0;
 
 DeckLinkCaptureDelegate::DeckLinkCaptureDelegate(FrameTracker &t) : 
 	m_refCount(1),
@@ -73,26 +73,15 @@ ULONG DeckLinkCaptureDelegate::Release(void)
 
 void DeckLinkCaptureDelegate::preview(void*, int) {}
 
-HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame* videoFrame, IDeckLinkAudioInputPacket* audioFrame)
+HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame* videoFrame, IDeckLinkAudioInputPacket*)
 {
-	IDeckLinkVideoFrame*				rightEyeFrame = NULL;
-	IDeckLinkVideoFrame3DExtensions*	threeDExtensions = NULL;
 	void*								frameBytes;
-	void*								audioFrameBytes;
 
 	// Handle Video Frame
 	if (videoFrame)
 	{
 		// If 3D mode is enabled we retreive the 3D extensions interface which gives.
 		// us access to the right eye frame by calling GetFrameForRightEye() .
-		if ( (videoFrame->QueryInterface(IID_IDeckLinkVideoFrame3DExtensions, (void **) &threeDExtensions) != S_OK) ||
-			(threeDExtensions->GetFrameForRightEye(&rightEyeFrame) != S_OK))
-		{
-			rightEyeFrame = NULL;
-		}
-
-		if (threeDExtensions)
-			threeDExtensions->Release();
 
 		if (videoFrame->GetFlags() & bmdFrameHasNoInputSource)
 		{
@@ -100,15 +89,6 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 		}
 		else
 		{
-			const char *timecodeString = NULL;
-			if (g_config.m_timecodeFormat != 0)
-			{
-				IDeckLinkTimecode *timecode;
-				if (videoFrame->GetTimecode(g_config.m_timecodeFormat, &timecode) == S_OK)
-				{
-					timecode->GetString(&timecodeString);
-				}
-			}
 
 			videoFrame->GetBytes(&frameBytes);
 			m_tracker.registerFrame((RGBPixel*)frameBytes);
@@ -119,37 +99,18 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 				rightEyeFrame != NULL ? "Valid Frame (3D left/right)" : "Valid Frame",
 				videoFrame->GetRowBytes() * videoFrame->GetHeight());
 			*/
-			if (timecodeString)
-				free((void*)timecodeString);
 
 			if (g_videoOutputFile != -1)
 			{
-				write(g_videoOutputFile, frameBytes, videoFrame->GetRowBytes() * videoFrame->GetHeight());
-
-				if (rightEyeFrame)
-				{
-					rightEyeFrame->GetBytes(&frameBytes);
-					write(g_videoOutputFile, frameBytes, videoFrame->GetRowBytes() * videoFrame->GetHeight());
-				}
+				ssize_t ret = write(g_videoOutputFile, frameBytes, videoFrame->GetRowBytes() * videoFrame->GetHeight());
+				if (ret < 0) 
+					fprintf(stderr, "Cannot write to file.\n");
 			}
 
 			preview(frameBytes, videoFrame->GetRowBytes() * videoFrame->GetHeight());
 		}
 
-		if (rightEyeFrame)
-			rightEyeFrame->Release();
-
 		g_frameCount++;
-	}
-
-	// Handle Audio Frame
-	if (audioFrame)
-	{
-		if (g_audioOutputFile != -1)
-		{
-			audioFrame->GetBytes(&audioFrameBytes);
-			write(g_audioOutputFile, audioFrameBytes, audioFrame->GetSampleFrameCount() * g_config.m_audioChannels * (g_config.m_audioSampleDepth / 8));
-		}
 	}
 
 	if (g_config.m_maxFrames > 0 && videoFrame && g_frameCount >= g_config.m_maxFrames)
@@ -162,7 +123,7 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 }
 
 
-HRESULT DeckLinkCaptureDelegate::VideoInputFormatChanged(BMDVideoInputFormatChangedEvents events, IDeckLinkDisplayMode *mode, BMDDetectedVideoInputFormatFlags formatFlags)
+HRESULT DeckLinkCaptureDelegate::VideoInputFormatChanged(BMDVideoInputFormatChangedEvents, IDeckLinkDisplayMode *mode, BMDDetectedVideoInputFormatFlags formatFlags)
 {
 	// This only gets called if bmdVideoInputEnableFormatDetection was set
 	// when enabling video input

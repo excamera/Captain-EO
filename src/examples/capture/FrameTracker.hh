@@ -34,8 +34,10 @@ public:
 		m_code_size(codesize),
 		m_rowBits(nbitsPerRow),
 		m_next_frameno(0),
-		recv_file("recv-cap.txt"),
-		sent_file("sent-cap.txt")
+		send_times(),
+		recv_times(),
+		sent_file("sent-cap.txt"),
+		recv_file("recv-cap.txt")
 	{	}
 
 	FrameTracker() : 		
@@ -46,8 +48,10 @@ public:
 		m_code_size(16),
 		m_rowBits(4),
 		m_next_frameno(0),
-		recv_file("recv-cap.txt"),
-		sent_file("sent-cap.txt")
+		send_times(),
+		recv_times(),
+		sent_file("sent-cap.txt"),
+		recv_file("recv-cap.txt")
 	{	}
 
   	~FrameTracker() {
