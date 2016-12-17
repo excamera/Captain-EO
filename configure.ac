@@ -37,5 +37,6 @@ AC_CONFIG_FILES([Makefile
 		 src/examples/playback/Makefile
 		 src/examples/rgb-example/Makefile
 		 src/examples/capture/Makefile
+		 src/examples/barcoder/Makefile
 		 ])
 AC_OUTPUT
