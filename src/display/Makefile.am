@@ -1,0 +1,6 @@
+AM_CPPFLAGS = $(XCBPRESENT_CFLAGS) $(XCB_CFLAGS) $(PANGOCAIRO_CFLAGS) $(CXX14_FLAGS)
+AM_CXXFLAGS = $(PICKY_CXXFLAGS)
+
+noinst_LIBRARIES = libdisplay.a
+
+libdisplay_a_SOURCES = display.hh display.cc

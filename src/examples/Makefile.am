@@ -1,0 +1,1 @@
+SUBDIRS = blackmagic-test rgb-example test-pattern pattern-new capture-new
