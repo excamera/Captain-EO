@@ -12,6 +12,9 @@ recv-pattern.txt
 sent-cap.txt
 sent-pattern.txt
 start-test.sh
+src/examples/capture/capture
+src/examples/playback/playback
+src/examples/rgb-example/rgb-example
 
 /INSTALL
 /aclocal.m4

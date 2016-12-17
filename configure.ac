@@ -34,12 +34,8 @@ AC_CONFIG_FILES([Makefile
 		 src/Makefile
 		 src/display/Makefile
 		 src/examples/Makefile
-		 src/examples/blackmagic-test/Makefile
-		 src/examples/test-pattern/Makefile
+		 src/examples/playback/Makefile
 		 src/examples/rgb-example/Makefile
-		 src/examples/capture-new/Makefile
-		 src/examples/pattern-new/Makefile
-
-
+		 src/examples/capture/Makefile
 		 ])
 AC_OUTPUT
