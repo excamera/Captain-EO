@@ -33,355 +33,358 @@
 #include "Config.h"
 
 BMDConfig::BMDConfig() :
-	m_deckLinkIndex(-1),
-	m_displayModeIndex(-1),
-	m_audioChannels(2),
-	m_audioSampleDepth(16),
-	m_outputFlags(bmdVideoOutputFlagDefault),
-	m_pixelFormat(bmdFormat8BitYUV),
-	m_videoOutputFile(),
-	m_audioOutputFile(),
-	m_deckLinkName(),
-	m_displayModeName()
+    m_deckLinkIndex(-1),
+    m_displayModeIndex(-1),
+    m_audioChannels(2),
+    m_audioSampleDepth(16),
+    m_outputFlags(bmdVideoOutputFlagDefault),
+    m_pixelFormat(bmdFormat8BitYUV),
+    m_videoInputFile(),
+    m_deckLinkName(),
+    m_displayModeName()
 {
 }
 
 BMDConfig::~BMDConfig()
 {
-	if (m_deckLinkName)
-		free(m_deckLinkName);
+    if (m_deckLinkName)
+        free(m_deckLinkName);
 
-	if (m_displayModeName)
-		free(m_displayModeName);
+    if (m_displayModeName)
+        free(m_displayModeName);
 }
 
 bool BMDConfig::ParseArguments(int argc,  char** argv)
 {
-	int		ch;
-	bool	displayHelp = false;
+    int     ch;
+    bool    displayHelp = false;
 
-	while ((ch = getopt(argc, argv, "d:?h3c:s:f:a:m:n:p:t:")) != -1)
-	{
-		switch (ch)
-		{
-			case 'd':
-				m_deckLinkIndex = atoi(optarg);
-				break;
+    while ((ch = getopt(argc, argv, "d:?h3c:s:f:a:m:n:p:t:v:")) != -1)
+    {
+        switch (ch)
+        {
+            case 'd':
+                m_deckLinkIndex = atoi(optarg);
+                break;
 
-			case 'm':
-				m_displayModeIndex = atoi(optarg);
-				break;
+            case 'm':
+                m_displayModeIndex = atoi(optarg);
+                break;
 
-			case 'c':
-				m_audioChannels = atoi(optarg);
-				if (m_audioChannels != 2 &&
-					m_audioChannels != 8 &&
-					m_audioChannels != 16)
-				{
-					fprintf(stderr, "Invalid argument: Audio Channels must be either 2, 8 or 16\n");
-					return false;
-				}
-				break;
+            case 'v':
+                m_videoInputFile = optarg;
+                break;
 
-			case 's':
-				m_audioSampleDepth = atoi(optarg);
-				if (m_audioSampleDepth != 16 && m_audioSampleDepth != 32)
-				{
-					fprintf(stderr, "Invalid argument: Audio Sample Depth must be either 16 bits or 32 bits\n");
-					return false;
-				}
-				break;
+            case 'c':
+                m_audioChannels = atoi(optarg);
+                if (m_audioChannels != 2 &&
+                    m_audioChannels != 8 &&
+                    m_audioChannels != 16)
+                {
+                    fprintf(stderr, "Invalid argument: Audio Channels must be either 2, 8 or 16\n");
+                    return false;
+                }
+                break;
 
-			case 'p':
-				switch(atoi(optarg))
-				{
-					case 0: m_pixelFormat = bmdFormat8BitYUV; break;
-					case 1: m_pixelFormat = bmdFormat10BitYUV; break;
-					case 2: m_pixelFormat = bmdFormat10BitRGB; break;
-					case 3: m_pixelFormat = bmdFormat8BitBGRA; break;
+            case 's':
+                m_audioSampleDepth = atoi(optarg);
+                if (m_audioSampleDepth != 16 && m_audioSampleDepth != 32)
+                {
+                    fprintf(stderr, "Invalid argument: Audio Sample Depth must be either 16 bits or 32 bits\n");
+                    return false;
+                }
+                break;
 
-					default:
-						fprintf(stderr, "Invalid argument: Pixel format %d is not valid", atoi(optarg));
-						return false;
-				}
-				break;
+            case 'p':
+                switch(atoi(optarg))
+                {
+                    case 0: m_pixelFormat = bmdFormat8BitYUV; break;
+                    case 1: m_pixelFormat = bmdFormat10BitYUV; break;
+                    case 2: m_pixelFormat = bmdFormat10BitRGB; break;
+                    case 3: m_pixelFormat = bmdFormat8BitBGRA; break;
 
-			case '3':
-				m_outputFlags |= bmdVideoOutputDualStream3D;
-				break;
+                    default:
+                        fprintf(stderr, "Invalid argument: Pixel format %d is not valid", atoi(optarg));
+                        return false;
+                }
+                break;
 
-			case '?':
-			case 'h':
-				displayHelp = true;
-		}
-	}
+            case '3':
+                m_outputFlags |= bmdVideoOutputDualStream3D;
+                break;
 
-	if (m_deckLinkIndex < 0)
-	{
-		fprintf(stderr, "You must select a device\n");
-		DisplayUsage(1);
-	}
+            case '?':
+            case 'h':
+                displayHelp = true;
+        }
+    }
 
-	if (m_displayModeIndex < 0)
-	{
-		fprintf(stderr, "You must select a display mode\n");
-		DisplayUsage(1);
-	}
+    if (m_deckLinkIndex < 0)
+    {
+        fprintf(stderr, "You must select a device\n");
+        DisplayUsage(1);
+    }
 
-	if (displayHelp)
-		DisplayUsage(0);
+    if (m_displayModeIndex < 0)
+    {
+        fprintf(stderr, "You must select a display mode\n");
+        DisplayUsage(1);
+    }
 
-	// Get device and display mode names
-	IDeckLink *deckLink = GetDeckLink(m_deckLinkIndex);
-	if (deckLink != NULL)
-	{
-		IDeckLinkDisplayMode *displayMode = GetDeckLinkDisplayMode(deckLink, m_displayModeIndex);
-		if (displayMode != NULL)
-		{
-			displayMode->GetName((const char**)&m_displayModeName);
-			displayMode->Release();
-		}
-		else
-		{
-			m_displayModeName = strdup("Invalid");
-		}
+    if (displayHelp)
+        DisplayUsage(0);
 
-		deckLink->GetModelName((const char**)&m_deckLinkName);
-		deckLink->Release();
-	}
-	else
-	{
-		m_deckLinkName = strdup("Invalid");
-	}
+    // Get device and display mode names
+    IDeckLink *deckLink = GetDeckLink(m_deckLinkIndex);
+    if (deckLink != NULL)
+    {
+        IDeckLinkDisplayMode *displayMode = GetDeckLinkDisplayMode(deckLink, m_displayModeIndex);
+        if (displayMode != NULL)
+        {
+            displayMode->GetName((const char**)&m_displayModeName);
+            displayMode->Release();
+        }
+        else
+        {
+            m_displayModeName = strdup("Invalid");
+        }
 
-	return true;
+        deckLink->GetModelName((const char**)&m_deckLinkName);
+        deckLink->Release();
+    }
+    else
+    {
+        m_deckLinkName = strdup("Invalid");
+    }
+
+    return true;
 }
 
 IDeckLink* BMDConfig::GetDeckLink(int idx)
 {
-	HRESULT				result;
-	IDeckLink*			deckLink;
-	IDeckLinkIterator*	deckLinkIterator = CreateDeckLinkIteratorInstance();
-	int					i = idx;
+    HRESULT             result;
+    IDeckLink*          deckLink;
+    IDeckLinkIterator*  deckLinkIterator = CreateDeckLinkIteratorInstance();
+    int                 i = idx;
 
-	while((result = deckLinkIterator->Next(&deckLink)) == S_OK)
-	{
-		if (i == 0)
-			break;
-		--i;
+    while((result = deckLinkIterator->Next(&deckLink)) == S_OK)
+    {
+        if (i == 0)
+            break;
+        --i;
 
-		deckLink->Release();
-	}
+        deckLink->Release();
+    }
 
-	deckLinkIterator->Release();
+    deckLinkIterator->Release();
 
-	if (result != S_OK)
-		return NULL;
+    if (result != S_OK)
+        return NULL;
 
-	return deckLink;
+    return deckLink;
 }
 
 IDeckLinkDisplayMode* BMDConfig::GetDeckLinkDisplayMode(IDeckLink* deckLink, int idx)
 {
-	HRESULT							result;
-	IDeckLinkDisplayMode*			displayMode = NULL;
-	IDeckLinkOutput*				deckLinkOutput = NULL;
-	IDeckLinkDisplayModeIterator*	displayModeIterator = NULL;
-	int								i = idx;
+    HRESULT                         result;
+    IDeckLinkDisplayMode*           displayMode = NULL;
+    IDeckLinkOutput*                deckLinkOutput = NULL;
+    IDeckLinkDisplayModeIterator*   displayModeIterator = NULL;
+    int                             i = idx;
 
-	result = deckLink->QueryInterface(IID_IDeckLinkOutput, (void**)&deckLinkOutput);
-	if (result != S_OK)
-		goto bail;
+    result = deckLink->QueryInterface(IID_IDeckLinkOutput, (void**)&deckLinkOutput);
+    if (result != S_OK)
+        goto bail;
 
-	result = deckLinkOutput->GetDisplayModeIterator(&displayModeIterator);
-	if (result != S_OK)
-		goto bail;
+    result = deckLinkOutput->GetDisplayModeIterator(&displayModeIterator);
+    if (result != S_OK)
+        goto bail;
 
-	while ((result = displayModeIterator->Next(&displayMode)) == S_OK)
-	{
-		if (i == 0)
-			break;
-		--i;
+    while ((result = displayModeIterator->Next(&displayMode)) == S_OK)
+    {
+        if (i == 0)
+            break;
+        --i;
 
-		displayMode->Release();
-	}
+        displayMode->Release();
+    }
 
-	if (result != S_OK)
-		goto bail;
+    if (result != S_OK)
+        goto bail;
 
 bail:
-	if (displayModeIterator)
-		displayModeIterator->Release();
+    if (displayModeIterator)
+        displayModeIterator->Release();
 
-	if (deckLinkOutput)
-		deckLinkOutput->Release();
+    if (deckLinkOutput)
+        deckLinkOutput->Release();
 
-	return displayMode;
+    return displayMode;
 }
 
 void BMDConfig::DisplayUsage(int status)
 {
-	HRESULT							result = E_FAIL;
-	IDeckLinkIterator*				deckLinkIterator = CreateDeckLinkIteratorInstance();
-	IDeckLinkDisplayModeIterator*	displayModeIterator = NULL;
+    HRESULT                         result = E_FAIL;
+    IDeckLinkIterator*              deckLinkIterator = CreateDeckLinkIteratorInstance();
+    IDeckLinkDisplayModeIterator*   displayModeIterator = NULL;
 
-	IDeckLink*						deckLink = NULL;
-	IDeckLink*						deckLinkSelected = NULL;
-	int								deckLinkCount = 0;
-	char*							deckLinkName = NULL;
+    IDeckLink*                      deckLink = NULL;
+    IDeckLink*                      deckLinkSelected = NULL;
+    int                             deckLinkCount = 0;
+    char*                           deckLinkName = NULL;
 
-	IDeckLinkOutput*				deckLinkOutput = NULL;
+    IDeckLinkOutput*                deckLinkOutput = NULL;
 
-	IDeckLinkDisplayMode*			displayMode;
-	int								displayModeCount = 0;
-	char*							displayModeName;
+    IDeckLinkDisplayMode*           displayMode;
+    int                             displayModeCount = 0;
+    char*                           displayModeName;
 
-	fprintf(stderr,
-		"Usage: TestPattern -d <device id> -m <mode id> [OPTIONS]\n"
-		"\n"
-		"    -d <device id>:\n"
-	);
+    fprintf(stderr,
+        "Usage: TestPattern -d <device id> -m <mode id> [OPTIONS]\n"
+        "\n"
+        "    -d <device id>:\n"
+    );
 
-	// Loop through all available devices
-	while (deckLinkIterator->Next(&deckLink) == S_OK)
-	{
-		char *deckLinkName;
-		result = deckLink->GetModelName((const char**)&deckLinkName);
-		if (result == S_OK)
-		{
-			fprintf(stderr,
-				"        %2d: %s%s\n",
-				deckLinkCount,
-				deckLinkName,
-				deckLinkCount == m_deckLinkIndex ? " (selected)" : ""
-			);
+    // Loop through all available devices
+    while (deckLinkIterator->Next(&deckLink) == S_OK)
+    {
+        char *deckLinkName;
+        result = deckLink->GetModelName((const char**)&deckLinkName);
+        if (result == S_OK)
+        {
+            fprintf(stderr,
+                "        %2d: %s%s\n",
+                deckLinkCount,
+                deckLinkName,
+                deckLinkCount == m_deckLinkIndex ? " (selected)" : ""
+            );
 
-			free(deckLinkName);
-		}
+            free(deckLinkName);
+        }
 
-		if (deckLinkCount == m_deckLinkIndex)
-			deckLinkSelected = deckLink;
-		else
-			deckLink->Release();
+        if (deckLinkCount == m_deckLinkIndex)
+            deckLinkSelected = deckLink;
+        else
+            deckLink->Release();
 
-		++deckLinkCount;
-	}
+        ++deckLinkCount;
+    }
 
-	if (deckLinkCount == 0)
-		fprintf(stderr, "        No DeckLink devices found. Is the driver loaded?\n");
+    if (deckLinkCount == 0)
+        fprintf(stderr, "        No DeckLink devices found. Is the driver loaded?\n");
 
-	deckLinkName = NULL;
+    deckLinkName = NULL;
 
-	if (deckLinkSelected != NULL)
-		deckLinkSelected->GetModelName((const char**)&deckLinkName);
+    if (deckLinkSelected != NULL)
+        deckLinkSelected->GetModelName((const char**)&deckLinkName);
 
-	fprintf(stderr,
-		"    -m <mode id>: (%s)\n",
-		deckLinkName ? deckLinkName : ""
-	);
+    fprintf(stderr,
+        "    -m <mode id>: (%s)\n",
+        deckLinkName ? deckLinkName : ""
+    );
 
-	if (deckLinkName != NULL)
-		free(deckLinkName);
+    if (deckLinkName != NULL)
+        free(deckLinkName);
 
-	// Loop through all available display modes on the delected DeckLink device
-	if (deckLinkSelected == NULL)
-	{
-		fprintf(stderr, "        No DeckLink device selected\n");
-		goto bail;
-	}
+    // Loop through all available display modes on the delected DeckLink device
+    if (deckLinkSelected == NULL)
+    {
+        fprintf(stderr, "        No DeckLink device selected\n");
+        goto bail;
+    }
 
-	result = deckLinkSelected->QueryInterface(IID_IDeckLinkOutput, (void**)&deckLinkOutput);
-	if (result != S_OK)
-		goto bail;
+    result = deckLinkSelected->QueryInterface(IID_IDeckLinkOutput, (void**)&deckLinkOutput);
+    if (result != S_OK)
+        goto bail;
 
-	result = deckLinkOutput->GetDisplayModeIterator(&displayModeIterator);
-	if (result != S_OK)
-		goto bail;
+    result = deckLinkOutput->GetDisplayModeIterator(&displayModeIterator);
+    if (result != S_OK)
+        goto bail;
 
-	while (displayModeIterator->Next(&displayMode) == S_OK)
-	{
-		result = displayMode->GetName((const char **)&displayModeName);
-		if (result == S_OK)
-		{
-			BMDTimeValue frameRateDuration;
-			BMDTimeValue frameRateScale;
+    while (displayModeIterator->Next(&displayMode) == S_OK)
+    {
+        result = displayMode->GetName((const char **)&displayModeName);
+        if (result == S_OK)
+        {
+            BMDTimeValue frameRateDuration;
+            BMDTimeValue frameRateScale;
 
-			displayMode->GetFrameRate(&frameRateDuration, &frameRateScale);
+            displayMode->GetFrameRate(&frameRateDuration, &frameRateScale);
 
-			fprintf(stderr,
-				"        %2d:  %-20s \t %li x %li \t %g FPS\n",
-				displayModeCount,
-				displayModeName,
-				displayMode->GetWidth(),
-				displayMode->GetHeight(),
-				(double)frameRateScale / (double)frameRateDuration
-			);
+            fprintf(stderr,
+                "        %2d:  %-20s \t %li x %li \t %g FPS\n",
+                displayModeCount,
+                displayModeName,
+                displayMode->GetWidth(),
+                displayMode->GetHeight(),
+                (double)frameRateScale / (double)frameRateDuration
+            );
 
-			free(displayModeName);
-		}
+            free(displayModeName);
+        }
 
-		displayMode->Release();
-		++displayModeCount;
-	}
+        displayMode->Release();
+        ++displayModeCount;
+    }
 
 bail:
-	fprintf(stderr,
-		"    -p <pixelformat>\n"
-		"         0:  8 bit YUV (4:2:2) (default)\n"
-		"         1:  10 bit YUV (4:2:2)\n"
-		"         2:  10 bit RGB (4:4:4)\n"
-		"    -c <channels>        Audio Channels (2, 8 or 16 - default is 2)\n"
-		"    -s <depth>           Audio Sample Depth (16 or 32 - default is 16)\n"
-		"    -3                   Playback Stereoscopic 3D (Requires 3D Hardware support)\n"
-		"\n"
-		"Output a test pattern eg:\n"
-		"\n"
-		"    TestPattern -d 0 -m 2 \n"
-	);
+    fprintf(stderr,
+        "    -p <pixelformat>\n"
+        "         0:  8 bit YUV (4:2:2) (default)\n"
+        "         1:  10 bit YUV (4:2:2)\n"
+        "         2:  10 bit RGB (4:4:4)\n"
+        "    -c <channels>        Audio Channels (2, 8 or 16 - default is 2)\n"
+        "    -s <depth>           Audio Sample Depth (16 or 32 - default is 16)\n"
+        "    -3                   Playback Stereoscopic 3D (Requires 3D Hardware support)\n"
+        "\n"
+        "Output a test pattern eg:\n"
+        "\n"
+        "    TestPattern -d 0 -m 2 \n"
+    );
 
-	if (deckLinkIterator != NULL)
-		deckLinkIterator->Release();
+    if (deckLinkIterator != NULL)
+        deckLinkIterator->Release();
 
-	if (displayModeIterator != NULL)
-		displayModeIterator->Release();
+    if (displayModeIterator != NULL)
+        displayModeIterator->Release();
 
-	if (deckLinkOutput != NULL)
-		deckLinkOutput->Release();
+    if (deckLinkOutput != NULL)
+        deckLinkOutput->Release();
 
-	if (deckLinkSelected != NULL)
-		deckLinkSelected->Release();
+    if (deckLinkSelected != NULL)
+        deckLinkSelected->Release();
 
-	exit(status);
+    exit(status);
 }
 
 void BMDConfig::DisplayConfiguration()
 {
-	fprintf(stderr, "Capturing with the following configuration:\n"
-		" - Playback device: %s\n"
-		" - Video mode: %s %s\n"
-		" - Pixel format: %s\n"
-		" - Audio channels: %u\n"
-		" - Audio sample depth: %u bit \n",
-		m_deckLinkName,
-		m_displayModeName,
-		(m_outputFlags & bmdVideoOutputDualStream3D) ? "3D" : "",
-		GetPixelFormatName(m_pixelFormat),
-		m_audioChannels,
-		m_audioSampleDepth
-	);
+    fprintf(stderr, "Capturing with the following configuration:\n"
+        " - Playback device: %s\n"
+        " - Video mode: %s %s\n"
+        " - Pixel format: %s\n"
+        " - Audio channels: %u\n"
+        " - Audio sample depth: %u bit \n",
+        m_deckLinkName,
+        m_displayModeName,
+        (m_outputFlags & bmdVideoOutputDualStream3D) ? "3D" : "",
+        GetPixelFormatName(m_pixelFormat),
+        m_audioChannels,
+        m_audioSampleDepth
+    );
 }
 
 const char* BMDConfig::GetPixelFormatName(BMDPixelFormat pixelFormat)
 {
-	switch (pixelFormat)
-	{
-		case bmdFormat8BitYUV:
-			return "8 bit YUV (4:2:2)";
-		case bmdFormat10BitYUV:
-			return "10 bit YUV (4:2:2)";
-		case bmdFormat10BitRGB:
-			return "10 bit RGB (4:4:4)";
-	}
-	return "unknown";
+    switch (pixelFormat)
+    {
+        case bmdFormat8BitYUV:
+            return "8 bit YUV (4:2:2)";
+        case bmdFormat10BitYUV:
+            return "10 bit YUV (4:2:2)";
+        case bmdFormat10BitRGB:
+            return "10 bit RGB (4:4:4)";
+    }
+    return "unknown";
 }
 

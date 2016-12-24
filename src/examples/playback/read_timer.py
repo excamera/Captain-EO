@@ -1,5 +1,5 @@
 with open("sent-pattern.txt", 'r') as sent_f:
-	with open("../capture-new/recv-cap.txt", 'r') as recv_f:
+	with open("../capture/recv-cap.txt", 'r') as recv_f:
 		send = sent_f.readlines()
 		recv = recv_f.readlines()
 		frame_recs = {}
@@ -16,11 +16,8 @@ with open("sent-pattern.txt", 'r') as sent_f:
 		end = False
 		for frame in sorted(frame_recs.keys()):
 			if len(frame_recs[frame][1]) == 0:
-				end = True
+				print "Frames %s not captured" %frame
 				continue
-			elif end:
-				print "    !!! Frames skipped!"
-
 			
 			if len(frame_recs[frame][1]) > 1:
 				print "    !!! Frame %d was received %d times." %(frame, len(frame_recs[frame][1]))

@@ -28,16 +28,9 @@
 #include "DeckLinkAPI.h"
 #include "Config.h"
 #include "FrameTracker.hh"
+#include <fstream>
 
-enum OutputSignal
-{
-	kOutputSignalPip		= 0,
-	kOutputSignalDrop		= 1
-};
-
-
-class TestPattern : public IDeckLinkVideoOutputCallback, public IDeckLinkAudioOutputCallback
-{
+class TestPattern : public IDeckLinkVideoOutputCallback {
 private:
 	int32_t					m_refCount;
 	BMDConfig*				m_config;
@@ -57,19 +50,14 @@ private:
 	unsigned long			m_totalFramesDropped;
 	unsigned long			m_totalFramesCompleted;
 
-	OutputSignal			m_outputSignal;
-	void*					m_audioBuffer;
-	unsigned long			m_audioBufferSampleLength;
-	unsigned long			m_audioBufferOffset;
-	BMDAudioSampleRate		m_audioSampleRate;
 	FrameTracker			&m_tracker;
+	std::ifstream 			m_infile;
 	~TestPattern();
 
 	// Signal Generator Implementation
 	void			StartRunning();
 	void			StopRunning();
 	void			ScheduleNextFrame(bool prerolling);
-	void			WriteNextAudioSamples();
 
 	void			PrintStatusLine(uint32_t queued);
 
@@ -86,23 +74,12 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, BMDOutputFrameCompletionResult result);
 	virtual HRESULT STDMETHODCALLTYPE ScheduledPlaybackHasStopped();
 
-	virtual HRESULT STDMETHODCALLTYPE RenderAudioSamples(bool preroll);
-
 	HRESULT CreateFrame(IDeckLinkVideoFrame** theFrame, void (*fillFunc)(IDeckLinkVideoFrame*));
 
 	TestPattern( const TestPattern & other ) = delete;
 	TestPattern & operator=( const TestPattern & other ) = delete;
 };
 
-void FillSine(void* audioBuffer, unsigned long samplesToWrite, unsigned long channels, unsigned long sampleDepth);
-void FillColourBars(IDeckLinkVideoFrame* theFrame, bool reverse);
-static inline void FillForwardColourBars(IDeckLinkVideoFrame* theFrame)
-{
-	FillColourBars(theFrame, false);
-}
-static inline void FillReverseColourBars(IDeckLinkVideoFrame* theFrame)
-{
-	FillColourBars(theFrame, true);
-}
+void FillColourBars(IDeckLinkVideoFrame* theFrame);
 void FillBlack(IDeckLinkVideoFrame* theFrame);
 int GetBytesPerPixel(BMDPixelFormat pixelFormat);

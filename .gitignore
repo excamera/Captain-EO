@@ -3,6 +3,7 @@
 *.lo
 *.la
 *.slo
+*.raw
 .deps
 Makefile
 Makefile.in
@@ -15,6 +16,7 @@ start-test.sh
 src/examples/capture/capture
 src/examples/playback/playback
 src/examples/rgb-example/rgb-example
+src/examples/barcoder/barcoder
 
 /INSTALL
 /aclocal.m4

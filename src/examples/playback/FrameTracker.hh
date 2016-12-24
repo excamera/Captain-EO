@@ -56,15 +56,6 @@ public:
   		sent_file.close();
   	}
 
-  	void encodeFrameNo(RGBPixel *frame_bytes) {
-  		for (int i = 0; i < m_total_bits; i++) 
-  			writeBit(frame_bytes, 
-  					 (i % m_rowBits) * m_code_size, 
-  					 (i / m_rowBits) * m_code_size, 
-  					 m_next_frameno & (1 << i));
-
-  		m_next_frameno++;
-  	}
 
   	void markFrameAsSent(uint64_t frameno) {
   		auto tp = high_resolution_clock::now();

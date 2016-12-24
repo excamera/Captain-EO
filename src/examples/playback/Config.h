@@ -49,8 +49,7 @@ public:
 	BMDVideoOutputFlags		m_outputFlags;
 	BMDPixelFormat			m_pixelFormat;
 
-	const char*				m_videoOutputFile;
-	const char*				m_audioOutputFile;
+	const char*				m_videoInputFile;
 
 private:
 	char*					m_deckLinkName;

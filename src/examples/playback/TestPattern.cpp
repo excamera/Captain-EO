@@ -43,58 +43,58 @@
 
 #include "TestPattern.h"
 
-pthread_mutex_t			sleepMutex;
-pthread_cond_t			sleepCond;
-bool					do_exit = false;
+pthread_mutex_t         sleepMutex;
+pthread_cond_t          sleepCond;
+bool                do_exit = false;
 
-const unsigned long		kAudioWaterlevel = 48000;
+const unsigned long     kAudioWaterlevel = 48000;
 // std::ofstream debugf;
 
 void sigfunc(int signum)
 {
-	if (signum == SIGINT || signum == SIGTERM) {
-		do_exit = true;
-	}
-	pthread_cond_signal(&sleepCond);
+    if (signum == SIGINT || signum == SIGTERM) {
+        do_exit = true;
+    }
+    pthread_cond_signal(&sleepCond);
 }
 
 int main(int argc, char *argv[])
 {
-	int				exitStatus = 1;
-	TestPattern*	generator = NULL;
+    int             exitStatus = 1;
+    TestPattern*    generator = NULL;
 
-	pthread_mutex_init(&sleepMutex, NULL);
-	pthread_cond_init(&sleepCond, NULL);
+    pthread_mutex_init(&sleepMutex, NULL);
+    pthread_cond_init(&sleepCond, NULL);
 
-	signal(SIGINT, sigfunc);
-	signal(SIGTERM, sigfunc);
-	signal(SIGHUP, sigfunc);
-	// debugf.open("debug.raw", std::ios::out|std::ios::binary);
-	FrameTracker tracker;
+    signal(SIGINT, sigfunc);
+    signal(SIGTERM, sigfunc);
+    signal(SIGHUP, sigfunc);
+    // debugf.open("debug.raw", std::ios::out|std::ios::binary);
+    FrameTracker tracker;
 
-	BMDConfig config;
-	if (!config.ParseArguments(argc, argv))
-	{
-		config.DisplayUsage(exitStatus);
-		goto bail;
-	}
+    BMDConfig config;
+    if (!config.ParseArguments(argc, argv))
+    {
+        config.DisplayUsage(exitStatus);
+        goto bail;
+    }
 
 
-	generator = new TestPattern(&config, tracker);
+    generator = new TestPattern(&config, tracker);
 
-	if (!generator->Run())
-		goto bail;
+    if (!generator->Run())
+        goto bail;
 
-	// All Okay.
-	exitStatus = 0;
+    // All Okay.
+    exitStatus = 0;
 
 bail:
-	if (generator)
-	{
-		generator->Release();
-		generator = NULL;
-	}
-	return exitStatus;
+    if (generator)
+    {
+        generator->Release();
+        generator = NULL;
+    }
+    return exitStatus;
 }
 
 TestPattern::~TestPattern()
@@ -102,342 +102,313 @@ TestPattern::~TestPattern()
 }
 
 TestPattern::TestPattern(BMDConfig *config, FrameTracker &t) :
-	m_refCount(1),
-	m_config(config),
-	m_running(false),
-	m_deckLink(),
-	m_deckLinkOutput(),
-	m_displayMode(),
-	m_frameWidth(0),
-	m_frameHeight(0),
-	m_frameDuration(0),
-	m_frameTimescale(0),
-	m_framesPerSecond(0),
-	m_videoFrameBlack(),
-	m_videoFrameBars(),
-	m_totalFramesScheduled(0),
-	m_totalFramesDropped(0),
-	m_totalFramesCompleted(0),
-	m_outputSignal(kOutputSignalDrop),
-	m_audioBuffer(),
-	m_audioBufferSampleLength(0),
-	m_audioBufferOffset(0),
-	m_audioSampleRate(bmdAudioSampleRate48kHz),
-	m_tracker(t)
+    m_refCount(1),
+    m_config(config),
+    m_running(false),
+    m_deckLink(),
+    m_deckLinkOutput(),
+    m_displayMode(),
+    m_frameWidth(0),
+    m_frameHeight(0),
+    m_frameDuration(0),
+    m_frameTimescale(0),
+    m_framesPerSecond(0),
+    m_videoFrameBlack(),
+    m_videoFrameBars(),
+    m_totalFramesScheduled(0),
+    m_totalFramesDropped(0),
+    m_totalFramesCompleted(0),
+    m_tracker(t),
+    m_infile()
 {}
 
 bool TestPattern::Run()
 {
-	HRESULT							result;
-	int								idx;
-	bool							success = false;
+    HRESULT                         result;
+    int                             idx;
+    bool                            success = false;
 
-	IDeckLinkIterator*				deckLinkIterator = NULL;
-	IDeckLinkDisplayModeIterator*	displayModeIterator = NULL;
-	char*							displayModeName = NULL;
+    IDeckLinkIterator*              deckLinkIterator = NULL;
+    IDeckLinkDisplayModeIterator*   displayModeIterator = NULL;
+    char*                           displayModeName = NULL;
 
-	// Get the DeckLink device
-	deckLinkIterator = CreateDeckLinkIteratorInstance();
-	if (!deckLinkIterator)
-	{
-		fprintf(stderr, "This application requires the DeckLink drivers installed.\n");
-		goto bail;
-	}
+    // Get the DeckLink device
+    deckLinkIterator = CreateDeckLinkIteratorInstance();
+    if (!deckLinkIterator)
+    {
+        fprintf(stderr, "This application requires the DeckLink drivers installed.\n");
+        goto bail;
+    }
 
-	idx = m_config->m_deckLinkIndex;
+    idx = m_config->m_deckLinkIndex;
 
-	while ((result = deckLinkIterator->Next(&m_deckLink)) == S_OK)
-	{
-		if (idx == 0)
-			break;
-		--idx;
+    while ((result = deckLinkIterator->Next(&m_deckLink)) == S_OK)
+    {
+        if (idx == 0)
+            break;
+        --idx;
 
-		m_deckLink->Release();
-	}
+        m_deckLink->Release();
+    }
 
-	if (result != S_OK || m_deckLink == NULL)
-	{
-		fprintf(stderr, "Unable to get DeckLink device %u\n", m_config->m_deckLinkIndex);
-		goto bail;
-	}
+    if (result != S_OK || m_deckLink == NULL)
+    {
+        fprintf(stderr, "Unable to get DeckLink device %u\n", m_config->m_deckLinkIndex);
+        goto bail;
+    }
 
-	// Get the output (display) interface of the DeckLink device
-	if (m_deckLink->QueryInterface(IID_IDeckLinkOutput, (void**)&m_deckLinkOutput) != S_OK)
-		goto bail;
+    // Get the output (display) interface of the DeckLink device
+    if (m_deckLink->QueryInterface(IID_IDeckLinkOutput, (void**)&m_deckLinkOutput) != S_OK)
+        goto bail;
 
-	// Get the display mode
-	idx = m_config->m_displayModeIndex;
+    // Get the display mode
+    idx = m_config->m_displayModeIndex;
 
-	result = m_deckLinkOutput->GetDisplayModeIterator(&displayModeIterator);
-	if (result != S_OK)
-		goto bail;
+    result = m_deckLinkOutput->GetDisplayModeIterator(&displayModeIterator);
+    if (result != S_OK)
+        goto bail;
 
-	while ((result = displayModeIterator->Next(&m_displayMode)) == S_OK)
-	{
-		if (idx == 0)
-			break;
-		--idx;
+    while ((result = displayModeIterator->Next(&m_displayMode)) == S_OK)
+    {
+        if (idx == 0)
+            break;
+        --idx;
 
-		m_displayMode->Release();
-	}
+        m_displayMode->Release();
+    }
 
-	if (result != S_OK || m_displayMode == NULL)
-	{
-		fprintf(stderr, "Unable to get display mode %d\n", m_config->m_displayModeIndex);
-		goto bail;
-	}
+    if (result != S_OK || m_displayMode == NULL)
+    {
+        fprintf(stderr, "Unable to get display mode %d\n", m_config->m_displayModeIndex);
+        goto bail;
+    }
 
-	// Get display mode name
-	result = m_displayMode->GetName((const char**)&displayModeName);
-	if (result != S_OK)
-	{
-		displayModeName = (char *)malloc(32);
-		snprintf(displayModeName, 32, "[index %d]", m_config->m_displayModeIndex);
-	}
+    // Get display mode name
+    result = m_displayMode->GetName((const char**)&displayModeName);
+    if (result != S_OK)
+    {
+        displayModeName = (char *)malloc(32);
+        snprintf(displayModeName, 32, "[index %d]", m_config->m_displayModeIndex);
+    }
 
-	// Check for 3D support on display mode
-	if ((m_config->m_outputFlags & bmdVideoOutputDualStream3D) && !(m_displayMode->GetFlags() & bmdDisplayModeSupports3D))
-	{
-		fprintf(stderr, "The display mode %s is not supported with 3D\n", displayModeName);
-		goto bail;
-	}
+    if (m_config->m_videoInputFile != NULL) {
+        m_infile.open(m_config->m_videoInputFile, std::ios::in|std::ios::binary);
+    } else {
+        fprintf(stderr, "-v <video filename> flag required\n");
+        exit(1);
+    }
 
-	m_config->DisplayConfiguration();
+    m_config->DisplayConfiguration();
 
-	// Provide this class as a delegate to the audio and video output interfaces
-	m_deckLinkOutput->SetScheduledFrameCompletionCallback(this);
-	//m_deckLinkOutput->SetAudioCallback(this);
+    // Provide this class as a delegate to the audio and video output interfaces
+    m_deckLinkOutput->SetScheduledFrameCompletionCallback(this);
+    //m_deckLinkOutput->SetAudioCallback(this);
 
-	success = true;
+    success = true;
 
-	// Start.
-	while (!do_exit)
-	{
-		StartRunning();
-		fprintf(stderr, "Starting playback\n");
+    // Start.
+    while (!do_exit)
+    {
+        StartRunning();
+        fprintf(stderr, "Starting playback\n");
 
-		pthread_mutex_lock(&sleepMutex);
-		pthread_cond_wait(&sleepCond, &sleepMutex);
-		pthread_mutex_unlock(&sleepMutex);
+        pthread_mutex_lock(&sleepMutex);
+        pthread_cond_wait(&sleepCond, &sleepMutex);
+        pthread_mutex_unlock(&sleepMutex);
 
-		fprintf(stderr, "Stopping playback\n");
-		StopRunning();
-	}
+        fprintf(stderr, "Stopping playback\n");
+        StopRunning();
+    }
 
-	printf("\n");
+    printf("\n");
 
-	m_running = false;
+    m_running = false;
 
 bail:
-	if (displayModeName != NULL)
-		free(displayModeName);
+    if (displayModeName != NULL)
+        free(displayModeName);
 
-	if (m_displayMode != NULL)
-		m_displayMode->Release();
+    if (m_displayMode != NULL)
+        m_displayMode->Release();
 
-	if (displayModeIterator != NULL)
-		displayModeIterator->Release();
+    if (displayModeIterator != NULL)
+        displayModeIterator->Release();
 
-	if (m_deckLinkOutput != NULL)
-		m_deckLinkOutput->Release();
+    if (m_deckLinkOutput != NULL)
+        m_deckLinkOutput->Release();
 
-	if (m_deckLink != NULL)
-		m_deckLink->Release();
+    if (m_deckLink != NULL)
+        m_deckLink->Release();
 
-	if (deckLinkIterator != NULL)
-		deckLinkIterator->Release();
+    if (deckLinkIterator != NULL)
+        deckLinkIterator->Release();
 
-	return success;
+    return success;
 }
 
 void TestPattern::StartRunning()
 {
-	HRESULT					result;
+    HRESULT                 result;
 
-	m_frameWidth = m_displayMode->GetWidth();
-	m_frameHeight = m_displayMode->GetHeight();
-	m_displayMode->GetFrameRate(&m_frameDuration, &m_frameTimescale);
+    m_frameWidth = m_displayMode->GetWidth();
+    m_frameHeight = m_displayMode->GetHeight();
+    m_displayMode->GetFrameRate(&m_frameDuration, &m_frameTimescale);
 
-	// Calculate the number of frames per second, rounded up to the nearest integer.  For example, for NTSC (29.97 FPS), framesPerSecond == 30.
-	m_framesPerSecond = (unsigned long)((m_frameTimescale + (m_frameDuration-1))  /  m_frameDuration);
+    // Calculate the number of frames per second, rounded up to the nearest integer.  For example, for NTSC (29.97 FPS), framesPerSecond == 30.
+    m_framesPerSecond = (unsigned long)((m_frameTimescale + (m_frameDuration-1))  /  m_frameDuration);
 
-	// Set the video output mode
-	result = m_deckLinkOutput->EnableVideoOutput(m_displayMode->GetDisplayMode(), m_config->m_outputFlags);
-	if (result != S_OK)
-	{
-		fprintf(stderr, "Failed to enable video output. Is another application using the card?\n");
-		goto bail;
-	}
+    // Set the video output mode
+    result = m_deckLinkOutput->EnableVideoOutput(m_displayMode->GetDisplayMode(), m_config->m_outputFlags);
+    if (result != S_OK)
+    {
+        fprintf(stderr, "Failed to enable video output. Is another application using the card?\n");
+        goto bail;
+    }
 
-	// Generate a frame of black
-	if (CreateFrame(&m_videoFrameBlack, FillBlack) != S_OK)
-		goto bail;
+    // Generate a frame of black
+    if (CreateFrame(&m_videoFrameBlack, FillBlack) != S_OK)
+        goto bail;
 
-	// Generate a frame of colour bars
-	if (CreateFrame(&m_videoFrameBars, FillForwardColourBars) != S_OK)
-		goto bail;
+    // Generate a frame of colour bars
+    if (CreateFrame(&m_videoFrameBars, FillColourBars) != S_OK)
+        goto bail;
 
-	// Begin video preroll by scheduling a second of frames in hardware
-	m_totalFramesScheduled = 0;
-	m_totalFramesDropped = 0;
-	m_totalFramesCompleted = 0;
-	for (unsigned i = 0; i < m_framesPerSecond; i++)
-		ScheduleNextFrame(true);
+    // Begin video preroll by scheduling a second of frames in hardware
+    m_totalFramesScheduled = 0;
+    m_totalFramesDropped = 0;
+    m_totalFramesCompleted = 0;
+    for (unsigned i = 0; i < m_framesPerSecond; i++)
+        ScheduleNextFrame(true);
 
-	m_deckLinkOutput->StartScheduledPlayback(100, m_frameTimescale, 1.0);
+    m_deckLinkOutput->StartScheduledPlayback(0, m_frameTimescale, 1.0);
 
-	m_running = true;
+    m_running = true;
 
-	return;
+    return;
 
 bail:
-	// *** Error-handling code.  Cleanup any resources that were allocated. *** //
-	StopRunning();
+    // *** Error-handling code.  Cleanup any resources that were allocated. *** //
+    StopRunning();
 }
 
 void TestPattern::StopRunning()
 {
-	// Stop the audio and video output streams immediately
-	m_deckLinkOutput->StopScheduledPlayback(0, NULL, 0);
-	//
-	m_deckLinkOutput->DisableAudioOutput();
-	m_deckLinkOutput->DisableVideoOutput();
+    // Stop the audio and video output streams immediately
+    m_deckLinkOutput->StopScheduledPlayback(0, NULL, 0);
+    //
+    m_deckLinkOutput->DisableAudioOutput();
+    m_deckLinkOutput->DisableVideoOutput();
 
-	if (m_videoFrameBlack != NULL)
-		m_videoFrameBlack->Release();
-	m_videoFrameBlack = NULL;
+    if (m_videoFrameBlack != NULL)
+        m_videoFrameBlack->Release();
+    m_videoFrameBlack = NULL;
 
-	if (m_videoFrameBars != NULL)
-		m_videoFrameBars->Release();
-	m_videoFrameBars = NULL;
+    if (m_videoFrameBars != NULL)
+        m_videoFrameBars->Release();
+    m_videoFrameBars = NULL;
 
-	if (m_audioBuffer != NULL)
-		free(m_audioBuffer);
-	m_audioBuffer = NULL;
 
-	// debugf.close();
-	// Success; update the UI
-	m_running = false;
+    // debugf.close();
+    // Success; update the UI
+    m_running = false;
 }
 
 void TestPattern::ScheduleNextFrame(bool prerolling)
 {
-	if (prerolling == false)
-	{
-		// If not prerolling, make sure that playback is still active
-		if (m_running == false)
-			return;
-	}
+    if (prerolling == false)
+    {
+        // If not prerolling, make sure that playback is still active
+        if (m_running == false)
+            return;
+    }
 
-	void* frameBytes = NULL, *referenceBytes = NULL;
-	IDeckLinkMutableVideoFrame* newFrame;
-	int bytesPerPixel = GetBytesPerPixel(m_config->m_pixelFormat);
-	HRESULT result = m_deckLinkOutput->CreateVideoFrame(m_frameWidth, m_frameHeight, 
-												m_frameWidth * bytesPerPixel, 
-												m_config->m_pixelFormat, bmdFrameFlagDefault, &newFrame);
-	if (result != S_OK) {
-		fprintf(stderr, "Failed to create video frame\n");
-		return;
-	}
+    void* frameBytes = NULL;
+    IDeckLinkMutableVideoFrame* newFrame;
+    int bytesPerPixel = GetBytesPerPixel(m_config->m_pixelFormat);
+    HRESULT result = m_deckLinkOutput->CreateVideoFrame(m_frameWidth, m_frameHeight, 
+                                                                              m_frameWidth * bytesPerPixel, 
+                                                                              m_config->m_pixelFormat, bmdFrameFlagDefault, &newFrame);
+    if (result != S_OK) {
+        fprintf(stderr, "Failed to create video frame\n");
+        return;
+    }
 
-	m_videoFrameBars->GetBytes(&referenceBytes);
-	newFrame->GetBytes(&frameBytes);
-	memcpy(frameBytes, referenceBytes, m_frameWidth * bytesPerPixel * m_frameHeight);
+    newFrame->GetBytes(&frameBytes);
+    if (m_infile) {
+        m_infile.read((char*)frameBytes, m_frameWidth * bytesPerPixel * m_frameHeight);
+        if (m_deckLinkOutput->ScheduleVideoFrame(newFrame, (m_totalFramesScheduled * m_frameDuration), m_frameDuration, m_frameTimescale) != S_OK)
+            return;
 
-	m_tracker.encodeFrameNo((RGBPixel*)frameBytes);
+        m_totalFramesScheduled += 1;
+    } else 
+        m_running = false;
 
-	if (m_deckLinkOutput->ScheduleVideoFrame(newFrame, (m_totalFramesScheduled * m_frameDuration), m_frameDuration, m_frameTimescale) != S_OK)
-		return;
 
-	m_totalFramesScheduled += 1;
-}
-
-void TestPattern::WriteNextAudioSamples()
-{
-	unsigned int		bufferedSamples;
-
-	// Try to maintain the number of audio samples buffered in the API at a specified waterlevel
-	if ((m_deckLinkOutput->GetBufferedAudioSampleFrameCount(&bufferedSamples) == S_OK) && (bufferedSamples < kAudioWaterlevel))
-	{
-		unsigned int		samplesToEndOfBuffer;
-		unsigned int		samplesToWrite;
-		unsigned int		samplesWritten;
-
-		samplesToEndOfBuffer = (m_audioBufferSampleLength - m_audioBufferOffset);
-		samplesToWrite = (kAudioWaterlevel - bufferedSamples);
-		if (samplesToWrite > samplesToEndOfBuffer)
-			samplesToWrite = samplesToEndOfBuffer;
-
-		if (m_deckLinkOutput->ScheduleAudioSamples((void*)((unsigned long)m_audioBuffer + (m_audioBufferOffset * m_config->m_audioChannels * m_config->m_audioSampleDepth / 8)), samplesToWrite, 0, 0, &samplesWritten) == S_OK)
-		{
-			m_audioBufferOffset = ((m_audioBufferOffset + samplesWritten) % m_audioBufferSampleLength);
-		}
-	}
 }
 
 HRESULT TestPattern::CreateFrame(IDeckLinkVideoFrame** frame, void (*fillFunc)(IDeckLinkVideoFrame*))
 {
-	HRESULT						result;
-	int							bytesPerPixel = GetBytesPerPixel(m_config->m_pixelFormat);
-	IDeckLinkMutableVideoFrame*	newFrame = NULL;
-	IDeckLinkMutableVideoFrame*	referenceFrame = NULL;
-	IDeckLinkVideoConversion*	frameConverter = NULL;
+    HRESULT                     result;
+    int                         bytesPerPixel = GetBytesPerPixel(m_config->m_pixelFormat);
+    IDeckLinkMutableVideoFrame* newFrame = NULL;
+    IDeckLinkMutableVideoFrame* referenceFrame = NULL;
+    IDeckLinkVideoConversion*   frameConverter = NULL;
 
-	*frame = NULL;
+    *frame = NULL;
 
-	result = m_deckLinkOutput->CreateVideoFrame(m_frameWidth, m_frameHeight, m_frameWidth * bytesPerPixel, m_config->m_pixelFormat, bmdFrameFlagDefault, &newFrame);
-	if (result != S_OK)
-	{
-		fprintf(stderr, "Failed to create video frame\n");
-		goto bail;
-	}
+    result = m_deckLinkOutput->CreateVideoFrame(m_frameWidth, m_frameHeight, m_frameWidth * bytesPerPixel, m_config->m_pixelFormat, bmdFrameFlagDefault, &newFrame);
+    if (result != S_OK)
+    {
+        fprintf(stderr, "Failed to create video frame\n");
+        goto bail;
+    }
 
-	if (m_config->m_pixelFormat == bmdFormat8BitBGRA)
-	{
-		fillFunc(newFrame);
-	}
-	else
-	{
-		// Create a black frame in 8 bit YUV and convert to desired format
-		result = m_deckLinkOutput->CreateVideoFrame(m_frameWidth, m_frameHeight, m_frameWidth * GetBytesPerPixel(bmdFormat8BitBGRA), bmdFormat8BitBGRA, bmdFrameFlagDefault, &referenceFrame);
-		if (result != S_OK)
-		{
-			fprintf(stderr, "Failed to create reference video frame\n");
-			goto bail;
-		}
+    if (m_config->m_pixelFormat == bmdFormat8BitBGRA)
+    {
+        fillFunc(newFrame);
+    }
+    else
+    {
+        // Create a black frame in 8 bit YUV and convert to desired format
+        result = m_deckLinkOutput->CreateVideoFrame(m_frameWidth, m_frameHeight, m_frameWidth * GetBytesPerPixel(bmdFormat8BitBGRA), bmdFormat8BitBGRA, bmdFrameFlagDefault, &referenceFrame);
+        if (result != S_OK)
+        {
+            fprintf(stderr, "Failed to create reference video frame\n");
+            goto bail;
+        }
 
-		fillFunc(referenceFrame);
+        fillFunc(referenceFrame);
 
-		frameConverter = CreateVideoConversionInstance();
+        frameConverter = CreateVideoConversionInstance();
 
-		result = frameConverter->ConvertFrame(referenceFrame, newFrame);
-		if (result != S_OK)
-		{
-			fprintf(stderr, "Failed to convert frame\n");
-			goto bail;
-		}
-	}
+        result = frameConverter->ConvertFrame(referenceFrame, newFrame);
+        if (result != S_OK)
+        {
+            fprintf(stderr, "Failed to convert frame\n");
+            goto bail;
+        }
+    }
 
-	*frame = newFrame;
-	newFrame = NULL;
+    *frame = newFrame;
+    newFrame = NULL;
 
 bail:
-	if (referenceFrame != NULL)
-		referenceFrame->Release();
+    if (referenceFrame != NULL)
+        referenceFrame->Release();
 
-	if (frameConverter != NULL)
-		frameConverter->Release();
+    if (frameConverter != NULL)
+        frameConverter->Release();
 
-	if (newFrame != NULL)
-		newFrame->Release();
+    if (newFrame != NULL)
+        newFrame->Release();
 
-	return result;
+    return result;
 }
 
 void TestPattern::PrintStatusLine(uint32_t queued)
 {
-	printf("scheduled %-16lu completed %-16lu dropped %-16lu frame level %-16u\n",
-		m_totalFramesScheduled, m_totalFramesCompleted, m_totalFramesDropped, queued);
+    printf("scheduled %-16lu completed %-16lu dropped %-16lu frame level %-16u\n",
+        m_totalFramesScheduled, m_totalFramesCompleted, m_totalFramesDropped, queued);
 }
 
 /************************* DeckLink API Delegate Methods *****************************/
@@ -445,193 +416,132 @@ void TestPattern::PrintStatusLine(uint32_t queued)
 
 HRESULT TestPattern::QueryInterface(REFIID, LPVOID *ppv)
 {
-	*ppv = NULL;
-	return E_NOINTERFACE;
+    *ppv = NULL;
+    return E_NOINTERFACE;
 }
 
 ULONG TestPattern::AddRef()
 {
-	// gcc atomic operation builtin
-	return __sync_add_and_fetch(&m_refCount, 1);
+    // gcc atomic operation builtin
+    return __sync_add_and_fetch(&m_refCount, 1);
 }
 
 ULONG TestPattern::Release()
 {
-	// gcc atomic operation builtin
-	ULONG newRefValue = __sync_sub_and_fetch(&m_refCount, 1);
-	if (!newRefValue)
-		delete this;
-	return newRefValue;
+    // gcc atomic operation builtin
+    ULONG newRefValue = __sync_sub_and_fetch(&m_refCount, 1);
+    if (!newRefValue)
+        delete this;
+    return newRefValue;
 }
 
 HRESULT TestPattern::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, BMDOutputFrameCompletionResult result)
 {
 
-	if (do_exit) {
-		++m_totalFramesCompleted;
-		completedFrame->Release();
-		return S_OK;
-	}
+    if (do_exit) {
+        ++m_totalFramesCompleted;
+        completedFrame->Release();
+        return S_OK;
+    }
 
-	switch (result) {
-		case bmdOutputFrameCompleted: 
-			m_tracker.markFrameAsSent(m_totalFramesCompleted);
-			std::cout << "Frame #" << m_totalFramesCompleted << " sent successfully." << std::endl;
-			break;
-		case bmdOutputFrameDisplayedLate:
-			std::cout << "Warning: Frame " << m_totalFramesCompleted << " Displayed Late. " << std::endl;
-			break;
-		case bmdOutputFrameDropped:
-			std::cout  << "Warning: Frame " << m_totalFramesCompleted << " Dropped. " << std::endl;
-			m_totalFramesDropped++;
-			break;
-		case bmdOutputFrameFlushed:
-			std::cout << "Warning: Frame " << m_totalFramesCompleted << " Flushed. " << std::endl;
-			break;
-		default:
-			std::cerr << "Error in ScheduledFrameCompleted" << std::endl;
-			break;
-	}	
-	completedFrame->Release();
-	++m_totalFramesCompleted;
-	// void * frameBytes = NULL;
-	// completedFrame->GetBytes(&frameBytes);
-
-	// debugf.write((char*)frameBytes, m_frameWidth * GetBytesPerPixel(m_config->m_pixelFormat) * m_frameHeight);
+    switch (result) {
+        case bmdOutputFrameCompleted: 
+            m_tracker.markFrameAsSent(m_totalFramesCompleted);
+            std::cout << "Frame #" << m_totalFramesCompleted << " on time." << std::endl;
+            break;
+        case bmdOutputFrameDisplayedLate:
+            std::cout << "Warning: Frame " << m_totalFramesCompleted << " Displayed Late. " << std::endl;
+            break;
+        case bmdOutputFrameDropped:
+            std::cout  << "Warning: Frame " << m_totalFramesCompleted << " Dropped. " << std::endl;
+            m_totalFramesDropped++;
+            break;
+        case bmdOutputFrameFlushed:
+            std::cout << "Warning: Frame " << m_totalFramesCompleted << " Flushed. " << std::endl;
+            break;
+        default:
+            std::cerr << "Error in ScheduledFrameCompleted" << std::endl;
+            break;
+    }   
+    completedFrame->Release();
+    ++m_totalFramesCompleted;
+    // debugf.write((char*)frameBytes, m_frameWidth * GetBytesPerPixel(m_config->m_pixelFormat) * m_frameHeight);
 
 
-	uint32_t queue_len = 0;
-	HRESULT r = m_deckLinkOutput->GetBufferedVideoFrameCount(&queue_len);
-	if (r != S_OK) {
-		ScheduleNextFrame(false);
-		return r;
-	}
+    uint32_t queue_len = 0;
+    HRESULT r = m_deckLinkOutput->GetBufferedVideoFrameCount(&queue_len);
+    if (r != S_OK) {
+        ScheduleNextFrame(false);
+        return r;
+    }
 
-	//PrintStatusLine(queue_len);
-	// When a video frame has been released by the API, schedule another video frame to be output
-	while (!do_exit && queue_len < m_framesPerSecond) {
-		ScheduleNextFrame(false);
-		queue_len++;
-	}
-	return S_OK;
+    //PrintStatusLine(queue_len);
+    // When a video frame has been released by the API, schedule another video frame to be output
+    while (!do_exit && queue_len < m_framesPerSecond) {
+        ScheduleNextFrame(false);
+        queue_len++;
+    }
+    return S_OK;
 }
 
 HRESULT TestPattern::ScheduledPlaybackHasStopped()
 {
-	return S_OK;
-}
-
-HRESULT TestPattern::RenderAudioSamples(bool)
-{
-	// Provide further audio samples to the DeckLink API until our preferred buffer waterlevel is reached
-	// WriteNextAudioSamples();
-
-
-
-	return S_OK;
+    return S_OK;
 }
 
 /*****************************************/
 
-void FillSine(void* audioBuffer, unsigned long samplesToWrite, unsigned long channels, unsigned long sampleDepth)
+
+void FillColourBars(IDeckLinkVideoFrame* theFrame)
 {
-	if (sampleDepth == 16)
-	{
-		short*		nextBuffer;
+    unsigned int*   nextWord;
+    unsigned long   width;
+    unsigned long   height;
+    unsigned int    bars[8] = {0x007F7FFF, 0x00FFFF00, 0x0000FFFF, 0x0000FF00, 0x00FF00FF, 0x000000FF, 0x00FF0000, 0x00000000};
 
-		nextBuffer = (short*)audioBuffer;
-		for (unsigned i = 0; i < samplesToWrite; i++)
-		{
-			short		sample;
+    theFrame->GetBytes((void**)&nextWord);
+    width = theFrame->GetWidth();
+    height = theFrame->GetHeight();
 
-			sample = (short)(24576.0 * sin((i * 2.0 * M_PI) / 48.0));
-			for (unsigned ch = 0; ch < channels; ch++)
-				*(nextBuffer++) = sample;
-		}
-	}
-	else if (sampleDepth == 32)
-	{
-		int*		nextBuffer;
-
-		nextBuffer = (int*)audioBuffer;
-		for (unsigned i = 0; i < samplesToWrite; i++)
-		{
-			int		sample;
-
-			sample = (int)(1610612736.0 * sin((i * 2.0 * M_PI) / 48.0));
-			for (unsigned ch = 0; ch < channels; ch++)
-				*(nextBuffer++) = sample;
-		}
-	}
-}
-
-void FillColourBars(IDeckLinkVideoFrame* theFrame, bool reverse)
-{
-	unsigned int*	nextWord;
-	unsigned long	width;
-	unsigned long	height;
-	unsigned int	bars[8] = {0x007F7FFF, 0x00FFFF00, 0x0000FFFF, 0x0000FF00, 0x00FF00FF, 0x000000FF, 0x00FF0000, 0x00000000};
-
-	theFrame->GetBytes((void**)&nextWord);
-	width = theFrame->GetWidth();
-	height = theFrame->GetHeight();
-
-	if (reverse)
-	{
-		for (uint64_t y = 0; y < height; y++)
-		{
-			for (long x = width - 1; x >= 0; x -= 1)
-			{
-				*(nextWord++) = bars[(x * 8) / width];
-			}
-		}
-	}
-	else
-	{
-		for (uint64_t y = 0; y < height; y++)
-		{
-			for (uint64_t x = 0; x < width; x += 1)
-			{
-				*(nextWord++) = bars[(x * 8) / width];
-			}
-		}
-	}
+    for (uint64_t y = 0; y < height; y++) 
+        for (uint64_t x = 0; x < width; x += 1) 
+            *(nextWord++) = bars[(x * 8) / width];
 }
 
 void FillBlack(IDeckLinkVideoFrame* theFrame)
 {
-	unsigned int*	nextWord;
-	unsigned long	width;
-	unsigned long	height;
-	unsigned long	wordsRemaining;
+    unsigned int*   nextWord;
+    unsigned long   width;
+    unsigned long   height;
+    unsigned long   wordsRemaining;
 
-	theFrame->GetBytes((void**)&nextWord);
-	width = theFrame->GetWidth();
-	height = theFrame->GetHeight();
+    theFrame->GetBytes((void**)&nextWord);
+    width = theFrame->GetWidth();
+    height = theFrame->GetHeight();
 
-	wordsRemaining = (width * 4 * height) / 4;
+    wordsRemaining = (width * 4 * height) / 4;
 
-	while (wordsRemaining-- > 0)
-		*(nextWord++) = 0x0;
+    while (wordsRemaining-- > 0)
+        *(nextWord++) = 0x0;
 }
 
 int GetBytesPerPixel(BMDPixelFormat pixelFormat)
 {
-	int bytesPerPixel = 2;
+    int bytesPerPixel = 2;
 
-	switch(pixelFormat)
-	{
-	case bmdFormat8BitYUV:
-		bytesPerPixel = 2;
-		break;
-	case bmdFormat8BitARGB:
-	case bmdFormat10BitYUV:
-	case bmdFormat10BitRGB:
-	case bmdFormat8BitBGRA:
-		bytesPerPixel = 4;
-		break;
-	}
+    switch(pixelFormat)
+    {
+    case bmdFormat8BitYUV:
+        bytesPerPixel = 2;
+        break;
+    case bmdFormat8BitARGB:
+    case bmdFormat10BitYUV:
+    case bmdFormat10BitRGB:
+    case bmdFormat8BitBGRA:
+        bytesPerPixel = 4;
+        break;
+    }
 
-	return bytesPerPixel;
+    return bytesPerPixel;
 }
 
