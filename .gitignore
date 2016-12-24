@@ -8,15 +8,13 @@
 Makefile
 Makefile.in
 nohup.out
-recv-cap.txt
-recv-pattern.txt
-sent-cap.txt
-sent-pattern.txt
+scan.log
 start-test.sh
 src/examples/capture/capture
 src/examples/playback/playback
 src/examples/rgb-example/rgb-example
 src/examples/barcoder/barcoder
+src/examples/scanner/scanner
 
 /INSTALL
 /aclocal.m4

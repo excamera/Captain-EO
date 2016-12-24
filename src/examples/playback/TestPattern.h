@@ -27,57 +27,57 @@
 
 #include "DeckLinkAPI.h"
 #include "Config.h"
-#include "FrameTracker.hh"
+#include "../scanner/Scanner.hh"
 #include <fstream>
 
 class TestPattern : public IDeckLinkVideoOutputCallback {
 private:
-	int32_t					m_refCount;
-	BMDConfig*				m_config;
-	bool					m_running;
-	IDeckLink*				m_deckLink;
-	IDeckLinkOutput*		m_deckLinkOutput;
-	IDeckLinkDisplayMode*	m_displayMode;
+    int32_t                 m_refCount;
+    BMDConfig*              m_config;
+    bool                    m_running;
+    IDeckLink*              m_deckLink;
+    IDeckLinkOutput*        m_deckLinkOutput;
+    IDeckLinkDisplayMode*   m_displayMode;
 
-	unsigned long			m_frameWidth;
-	unsigned long			m_frameHeight;
-	BMDTimeValue			m_frameDuration;
-	BMDTimeScale			m_frameTimescale;
-	unsigned long			m_framesPerSecond;
-	IDeckLinkVideoFrame*	m_videoFrameBlack;
-	IDeckLinkVideoFrame*	m_videoFrameBars;
-	unsigned long			m_totalFramesScheduled;
-	unsigned long			m_totalFramesDropped;
-	unsigned long			m_totalFramesCompleted;
+    unsigned long           m_frameWidth;
+    unsigned long           m_frameHeight;
+    BMDTimeValue            m_frameDuration;
+    BMDTimeScale            m_frameTimescale;
+    unsigned long           m_framesPerSecond;
+    IDeckLinkVideoFrame*    m_videoFrameBlack;
+    IDeckLinkVideoFrame*    m_videoFrameBars;
+    unsigned long           m_totalFramesScheduled;
+    unsigned long           m_totalFramesDropped;
+    unsigned long           m_totalFramesCompleted;
 
-	FrameTracker			&m_tracker;
-	std::ifstream 			m_infile;
-	~TestPattern();
+    Scanner                 &m_scanner;
+    std::ifstream           m_infile;
+    ~TestPattern();
 
-	// Signal Generator Implementation
-	void			StartRunning();
-	void			StopRunning();
-	void			ScheduleNextFrame(bool prerolling);
+    // Signal Generator Implementation
+    void            StartRunning();
+    void            StopRunning();
+    void            ScheduleNextFrame(bool prerolling);
 
-	void			PrintStatusLine(uint32_t queued);
+    void            PrintStatusLine(uint32_t queued);
 
 public:
-	TestPattern(BMDConfig *config, FrameTracker &t);
-	bool Run();
+    TestPattern(BMDConfig *config, Scanner &s);
+    bool Run();
 
-	// *** DeckLink API implementation of IDeckLinkVideoOutputCallback IDeckLinkAudioOutputCallback *** //
-	// IUnknown
-	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID *ppv);
-	virtual ULONG STDMETHODCALLTYPE AddRef();
-	virtual ULONG STDMETHODCALLTYPE Release();
+    // *** DeckLink API implementation of IDeckLinkVideoOutputCallback IDeckLinkAudioOutputCallback *** //
+    // IUnknown
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID *ppv);
+    virtual ULONG STDMETHODCALLTYPE AddRef();
+    virtual ULONG STDMETHODCALLTYPE Release();
 
-	virtual HRESULT STDMETHODCALLTYPE ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, BMDOutputFrameCompletionResult result);
-	virtual HRESULT STDMETHODCALLTYPE ScheduledPlaybackHasStopped();
+    virtual HRESULT STDMETHODCALLTYPE ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, BMDOutputFrameCompletionResult result);
+    virtual HRESULT STDMETHODCALLTYPE ScheduledPlaybackHasStopped();
 
-	HRESULT CreateFrame(IDeckLinkVideoFrame** theFrame, void (*fillFunc)(IDeckLinkVideoFrame*));
+    HRESULT CreateFrame(IDeckLinkVideoFrame** theFrame, void (*fillFunc)(IDeckLinkVideoFrame*));
 
-	TestPattern( const TestPattern & other ) = delete;
-	TestPattern & operator=( const TestPattern & other ) = delete;
+    TestPattern( const TestPattern & other ) = delete;
+    TestPattern & operator=( const TestPattern & other ) = delete;
 };
 
 void FillColourBars(IDeckLinkVideoFrame* theFrame);

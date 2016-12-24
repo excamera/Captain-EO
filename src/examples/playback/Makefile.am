@@ -2,6 +2,6 @@ AM_CPPFLAGS = -I$(srcdir)/../../../third_party/decklink -I$(srcdir)/../../displa
 AM_CXXFLAGS = $(PICKY_CXXFLAGS)
 
 bin_PROGRAMS = playback
-playback_SOURCES = TestPattern.cpp TestPattern.h Config.h Config.cpp FrameTracker.hh
+playback_SOURCES = TestPattern.cpp TestPattern.h Config.h Config.cpp ../scanner/Scanner.hh
 playback_LDADD = ../../../third_party/decklink/libdecklink.a -ldl -lm
 playback_LDFLAGS = -pthread

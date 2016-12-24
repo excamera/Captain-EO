@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
     signal(SIGTERM, sigfunc);
     signal(SIGHUP, sigfunc);
     // debugf.open("debug.raw", std::ios::out|std::ios::binary);
-    FrameTracker tracker;
+    Scanner scanner;
 
     BMDConfig config;
     if (!config.ParseArguments(argc, argv))
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     }
 
 
-    generator = new TestPattern(&config, tracker);
+    generator = new TestPattern(&config, scanner);
 
     if (!generator->Run())
         goto bail;
@@ -101,7 +101,7 @@ TestPattern::~TestPattern()
 {
 }
 
-TestPattern::TestPattern(BMDConfig *config, FrameTracker &t) :
+TestPattern::TestPattern(BMDConfig *config, Scanner &s) :
     m_refCount(1),
     m_config(config),
     m_running(false),
@@ -118,7 +118,7 @@ TestPattern::TestPattern(BMDConfig *config, FrameTracker &t) :
     m_totalFramesScheduled(0),
     m_totalFramesDropped(0),
     m_totalFramesCompleted(0),
-    m_tracker(t),
+    m_scanner(s),
     m_infile()
 {}
 
@@ -444,9 +444,12 @@ HRESULT TestPattern::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame
         return S_OK;
     }
 
+    void *frameBytes = NULL;
+    completedFrame->GetBytes(&frameBytes);
+
     switch (result) {
         case bmdOutputFrameCompleted: 
-            m_tracker.markFrameAsSent(m_totalFramesCompleted);
+            m_scanner.scanFrame((RGBPixel*)frameBytes);
             std::cout << "Frame #" << m_totalFramesCompleted << " on time." << std::endl;
             break;
         case bmdOutputFrameDisplayedLate:

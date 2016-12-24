@@ -29,22 +29,22 @@
 #define __CAPTURE_H__
 
 #include "DeckLinkAPI.h"
-#include "FrameTracker.hh"
+#include "../scanner/Scanner.hh"
 
 class DeckLinkCaptureDelegate : public IDeckLinkInputCallback
 {
 public:
-	DeckLinkCaptureDelegate(FrameTracker &t);
+    DeckLinkCaptureDelegate(Scanner &s);
 
-	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, LPVOID *) { return E_NOINTERFACE; }
-	virtual ULONG STDMETHODCALLTYPE AddRef(void);
-	virtual ULONG STDMETHODCALLTYPE  Release(void);
-	virtual HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(BMDVideoInputFormatChangedEvents, IDeckLinkDisplayMode*, BMDDetectedVideoInputFormatFlags);
-	virtual HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(IDeckLinkVideoInputFrame*, IDeckLinkAudioInputPacket*);
-	virtual void preview(void*, int);
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, LPVOID *) { return E_NOINTERFACE; }
+    virtual ULONG STDMETHODCALLTYPE AddRef(void);
+    virtual ULONG STDMETHODCALLTYPE  Release(void);
+    virtual HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(BMDVideoInputFormatChangedEvents, IDeckLinkDisplayMode*, BMDDetectedVideoInputFormatFlags);
+    virtual HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(IDeckLinkVideoInputFrame*, IDeckLinkAudioInputPacket*);
+    virtual void preview(void*, int);
 private:
-	int32_t				m_refCount;
-	FrameTracker		&m_tracker;
+    int32_t             m_refCount;
+    Scanner             &m_scanner;
 };
 
 #endif

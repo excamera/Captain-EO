@@ -29,14 +29,15 @@ PKG_CHECK_MODULES([PANGOCAIRO], [pangocairo])
 # Checks for library functions.
 
 AC_CONFIG_FILES([Makefile
-		 third_party/Makefile
-		 third_party/decklink/Makefile
-		 src/Makefile
-		 src/display/Makefile
-		 src/examples/Makefile
-		 src/examples/playback/Makefile
-		 src/examples/rgb-example/Makefile
-		 src/examples/capture/Makefile
-		 src/examples/barcoder/Makefile
-		 ])
+         third_party/Makefile
+         third_party/decklink/Makefile
+         src/Makefile
+         src/display/Makefile
+         src/examples/Makefile
+         src/examples/playback/Makefile
+         src/examples/rgb-example/Makefile
+         src/examples/capture/Makefile
+         src/examples/barcoder/Makefile
+         src/examples/scanner/Makefile
+         ])
 AC_OUTPUT
