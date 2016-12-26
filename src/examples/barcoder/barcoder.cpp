@@ -1,5 +1,7 @@
 #include "barcoder.hh"
 
+static const char* infile_default = "video.raw";
+
 void Barcoder::barcodeFrameUpper(RGBPixel *frame_bytes, uint64_t frameno) {
     for (int i = 0; i < m_total_bits; i++) 
         writeBit(frame_bytes, 
@@ -28,8 +30,17 @@ void Barcoder::writeBit(RGBPixel* frame_bytes, int x, int y, bool set) {
 
 }
 
-int main() {
-    std::ifstream infile("input-video.raw", std::ios::in|std::ios::binary);
+int main(int argc, char **argv) {
+    const char * filename;
+    if (argc < 2) 
+        filename = infile_default;
+    else
+        filename = argv[1];
+    std::ifstream infile(filename, std::ios::in|std::ios::binary);
+    if (infile.fail()) {
+        std::cerr << "File " << filename << " could not be opened. Exiting." << std::endl;
+        exit(1);
+    }
     std::ofstream outfile("barcoded-video.raw", std::ios::out|std::ios::binary);
     Barcoder br(infile);
     outfile << br;
