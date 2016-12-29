@@ -33,34 +33,31 @@
 class BMDConfig
 {
 public:
-	BMDConfig();
-	virtual ~BMDConfig();
+    BMDConfig();
+    virtual ~BMDConfig();
 
-	bool ParseArguments(int argc,  char** argv);
-	void DisplayUsage(int status);
-	void DisplayConfiguration();
+    bool ParseArguments(int argc,  char** argv);
+    void DisplayUsage(int status);
+    void DisplayConfiguration();
 
-	int						m_deckLinkIndex;
-	int						m_displayModeIndex;
+    int                     m_deckLinkIndex;
+    int                     m_displayModeIndex;
 
-	int						m_audioChannels;
-	int						m_audioSampleDepth;
+    BMDVideoOutputFlags     m_outputFlags;
+    BMDPixelFormat          m_pixelFormat;
 
-	BMDVideoOutputFlags		m_outputFlags;
-	BMDPixelFormat			m_pixelFormat;
-
-	const char*				m_videoInputFile;
+    const char*             m_videoInputFile;
 
 private:
-	char*					m_deckLinkName;
-	char*					m_displayModeName;
+    char*                   m_deckLinkName;
+    char*                   m_displayModeName;
 
-	static const char* GetPixelFormatName(BMDPixelFormat pixelFormat);
+    static const char* GetPixelFormatName(BMDPixelFormat pixelFormat);
 
-	IDeckLink* GetDeckLink(int idx);
-	IDeckLinkDisplayMode* GetDeckLinkDisplayMode(IDeckLink* deckLink, int idx);
-	BMDConfig( const BMDConfig & other ) = delete;
-	BMDConfig & operator=( const BMDConfig & other ) = delete;
+    IDeckLink* GetDeckLink(int idx);
+    IDeckLinkDisplayMode* GetDeckLinkDisplayMode(IDeckLink* deckLink, int idx);
+    BMDConfig( const BMDConfig & other ) = delete;
+    BMDConfig & operator=( const BMDConfig & other ) = delete;
 };
 
 #endif

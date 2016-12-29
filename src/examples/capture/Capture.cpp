@@ -40,7 +40,6 @@
 static pthread_mutex_t  g_sleepMutex;
 static pthread_cond_t   g_sleepCond;
 static int              g_videoOutputFile = -1;
-static int              g_audioOutputFile = -1;
 static bool             g_do_exit = false;
 
 static BMDConfig        g_config;
@@ -323,15 +322,6 @@ int main(int argc, char *argv[])
         goto bail;
     }
 
-    if (g_config.m_inputFlags & bmdVideoInputDualStream3D)
-    {
-        if (!(displayMode->GetFlags() & bmdDisplayModeSupports3D))
-        {
-            fprintf(stderr, "The display mode %s is not supported with 3D\n", displayModeName);
-            goto bail;
-        }
-    }
-
     // Print the selected configuration
     g_config.DisplayConfiguration();
 
@@ -353,16 +343,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (g_config.m_audioOutputFile != NULL)
-    {
-        g_audioOutputFile = open(g_config.m_audioOutputFile, O_WRONLY|O_CREAT|O_TRUNC, 0664);
-        if (g_audioOutputFile < 0)
-        {
-            fprintf(stderr, "Could not open audio output file \"%s\"\n", g_config.m_audioOutputFile);
-            goto bail;
-        }
-    }
-
     // Block main thread until signal occurs
     while (!g_do_exit)
     {
@@ -373,10 +353,6 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Failed to enable video input. Is another application using the card?\n");
             goto bail;
         }
-
-        result = g_deckLinkInput->EnableAudioInput(bmdAudioSampleRate48kHz, g_config.m_audioSampleDepth, g_config.m_audioChannels);
-        if (result != S_OK)
-            goto bail;
 
         result = g_deckLinkInput->StartStreams();
         if (result != S_OK)
@@ -391,16 +367,12 @@ int main(int argc, char *argv[])
 
         fprintf(stderr, "Stopping Capture\n");
         g_deckLinkInput->StopStreams();
-        g_deckLinkInput->DisableAudioInput();
         g_deckLinkInput->DisableVideoInput();
     }
 
 bail:
     if (g_videoOutputFile != 0)
         close(g_videoOutputFile);
-
-    if (g_audioOutputFile != 0)
-        close(g_audioOutputFile);
 
     if (displayModeName != NULL)
         free(displayModeName);

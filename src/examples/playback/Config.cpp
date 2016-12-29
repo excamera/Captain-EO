@@ -33,12 +33,10 @@
 #include "Config.h"
 
 BMDConfig::BMDConfig() :
-    m_deckLinkIndex(-1),
-    m_displayModeIndex(-1),
-    m_audioChannels(2),
-    m_audioSampleDepth(16),
+    m_deckLinkIndex(0),
+    m_displayModeIndex(15),
     m_outputFlags(bmdVideoOutputFlagDefault),
-    m_pixelFormat(bmdFormat8BitYUV),
+    m_pixelFormat(bmdFormat8BitBGRA),
     m_videoInputFile(),
     m_deckLinkName(),
     m_displayModeName()
@@ -59,7 +57,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
     int     ch;
     bool    displayHelp = false;
 
-    while ((ch = getopt(argc, argv, "d:?h3c:s:f:a:m:n:p:t:v:")) != -1)
+    while ((ch = getopt(argc, argv, "d:?hm:p:v:")) != -1)
     {
         switch (ch)
         {
@@ -73,26 +71,6 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 
             case 'v':
                 m_videoInputFile = optarg;
-                break;
-
-            case 'c':
-                m_audioChannels = atoi(optarg);
-                if (m_audioChannels != 2 &&
-                    m_audioChannels != 8 &&
-                    m_audioChannels != 16)
-                {
-                    fprintf(stderr, "Invalid argument: Audio Channels must be either 2, 8 or 16\n");
-                    return false;
-                }
-                break;
-
-            case 's':
-                m_audioSampleDepth = atoi(optarg);
-                if (m_audioSampleDepth != 16 && m_audioSampleDepth != 32)
-                {
-                    fprintf(stderr, "Invalid argument: Audio Sample Depth must be either 16 bits or 32 bits\n");
-                    return false;
-                }
                 break;
 
             case 'p':
@@ -109,11 +87,6 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
                 }
                 break;
 
-            case '3':
-                m_outputFlags |= bmdVideoOutputDualStream3D;
-                break;
-
-            case '?':
             case 'h':
                 displayHelp = true;
         }
@@ -330,12 +303,11 @@ void BMDConfig::DisplayUsage(int status)
 bail:
     fprintf(stderr,
         "    -p <pixelformat>\n"
-        "         0:  8 bit YUV (4:2:2) (default)\n"
+        "         0:  8 bit YUV (4:2:2)\n"
         "         1:  10 bit YUV (4:2:2)\n"
         "         2:  10 bit RGB (4:4:4)\n"
-        "    -c <channels>        Audio Channels (2, 8 or 16 - default is 2)\n"
-        "    -s <depth>           Audio Sample Depth (16 or 32 - default is 16)\n"
-        "    -3                   Playback Stereoscopic 3D (Requires 3D Hardware support)\n"
+        "         3:  8 bit BGRA (4:4:4:x) (default)\n"
+        "         4:  8 bit ARGB (4:4:4:4)\n"
         "\n"
         "Output a test pattern eg:\n"
         "\n"
@@ -361,16 +333,11 @@ void BMDConfig::DisplayConfiguration()
 {
     fprintf(stderr, "Capturing with the following configuration:\n"
         " - Playback device: %s\n"
-        " - Video mode: %s %s\n"
-        " - Pixel format: %s\n"
-        " - Audio channels: %u\n"
-        " - Audio sample depth: %u bit \n",
+        " - Video mode: %s\n"
+        " - Pixel format: %s\n",
         m_deckLinkName,
         m_displayModeName,
-        (m_outputFlags & bmdVideoOutputDualStream3D) ? "3D" : "",
-        GetPixelFormatName(m_pixelFormat),
-        m_audioChannels,
-        m_audioSampleDepth
+        GetPixelFormatName(m_pixelFormat)
     );
 }
 

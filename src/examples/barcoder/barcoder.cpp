@@ -1,6 +1,33 @@
 #include "barcoder.hh"
 
-static const char* infile_default = "video.raw";
+static RGBPixel White = {0xFF, 0xFF, 0xFF, 0x0};
+static RGBPixel Black = {0x0, 0x0, 0x0, 0x0};
+
+Barcoder::Barcoder(std::ifstream& rawfile, 
+                    int width, int height, 
+                    int codesize, int nbitsPerRow) : 
+    m_height(height), 
+    m_width(width),
+    m_bytes_per_row(width * 4),
+    m_total_bits(nbitsPerRow * nbitsPerRow),
+    m_code_size(codesize),
+    m_rowBits(nbitsPerRow),
+    m_next_frameno(0),
+    m_input(rawfile)
+{}
+
+Barcoder::Barcoder(std::ifstream& rawfile) :
+    m_height(720), 
+    m_width(1280),
+    m_bytes_per_row(1280 * 4),
+    m_total_bits(4 * 4),
+    m_code_size(16),
+    m_rowBits(4),
+    m_next_frameno(0),
+    m_input(rawfile)
+{}
+
+Barcoder::~Barcoder() {}
 
 void Barcoder::barcodeFrameUpper(RGBPixel *frame_bytes, uint64_t frameno) {
     for (int i = 0; i < m_total_bits; i++) 
@@ -30,21 +57,14 @@ void Barcoder::writeBit(RGBPixel* frame_bytes, int x, int y, bool set) {
 
 }
 
-int main(int argc, char **argv) {
-    const char * filename;
-    if (argc < 2) 
-        filename = infile_default;
-    else
-        filename = argv[1];
-    std::ifstream infile(filename, std::ios::in|std::ios::binary);
-    if (infile.fail()) {
-        std::cerr << "File " << filename << " could not be opened. Exiting." << std::endl;
-        exit(1);
+std::ostream& operator<<(std::ostream& os, Barcoder& br)   {
+    const uint64_t frame_size = br.m_height * br.m_bytes_per_row;
+    char buf[frame_size];
+    while (true) {
+        if (br.m_input.read(buf, frame_size).eof())
+            break;
+        br.barcodeFrame((RGBPixel*)buf);
+        os.write(buf, frame_size);
     }
-    std::ofstream outfile("barcoded-video.raw", std::ios::out|std::ios::binary);
-    Barcoder br(infile);
-    outfile << br;
-    infile.close();
-    outfile.close();
-    return 0;
+    return os;
 }

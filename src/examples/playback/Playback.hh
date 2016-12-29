@@ -27,10 +27,10 @@
 
 #include "DeckLinkAPI.h"
 #include "Config.h"
-#include "../scanner/Scanner.hh"
+#include "Scanner.hh"
 #include <fstream>
 
-class TestPattern : public IDeckLinkVideoOutputCallback {
+class Playback : public IDeckLinkVideoOutputCallback {
 private:
     int32_t                 m_refCount;
     BMDConfig*              m_config;
@@ -44,15 +44,13 @@ private:
     BMDTimeValue            m_frameDuration;
     BMDTimeScale            m_frameTimescale;
     unsigned long           m_framesPerSecond;
-    IDeckLinkVideoFrame*    m_videoFrameBlack;
-    IDeckLinkVideoFrame*    m_videoFrameBars;
     unsigned long           m_totalFramesScheduled;
     unsigned long           m_totalFramesDropped;
     unsigned long           m_totalFramesCompleted;
 
     Scanner                 &m_scanner;
     std::ifstream           m_infile;
-    ~TestPattern();
+    ~Playback();
 
     // Signal Generator Implementation
     void            StartRunning();
@@ -62,7 +60,7 @@ private:
     void            PrintStatusLine(uint32_t queued);
 
 public:
-    TestPattern(BMDConfig *config, Scanner &s);
+    Playback(BMDConfig *config, Scanner &s);
     bool Run();
 
     // *** DeckLink API implementation of IDeckLinkVideoOutputCallback IDeckLinkAudioOutputCallback *** //
@@ -76,10 +74,8 @@ public:
 
     HRESULT CreateFrame(IDeckLinkVideoFrame** theFrame, void (*fillFunc)(IDeckLinkVideoFrame*));
 
-    TestPattern( const TestPattern & other ) = delete;
-    TestPattern & operator=( const TestPattern & other ) = delete;
+    Playback( const Playback & other ) = delete;
+    Playback & operator=( const Playback & other ) = delete;
 };
 
-void FillColourBars(IDeckLinkVideoFrame* theFrame);
-void FillBlack(IDeckLinkVideoFrame* theFrame);
 int GetBytesPerPixel(BMDPixelFormat pixelFormat);

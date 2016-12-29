@@ -14,7 +14,7 @@ src/examples/capture/capture
 src/examples/playback/playback
 src/examples/rgb-example/rgb-example
 src/examples/barcoder/barcoder
-src/examples/scanner/scanner
+src/examples/scanner/scanner-test
 
 /INSTALL
 /aclocal.m4

@@ -29,7 +29,7 @@
 #define __CAPTURE_H__
 
 #include "DeckLinkAPI.h"
-#include "../scanner/Scanner.hh"
+#include "Scanner.hh"
 
 class DeckLinkCaptureDelegate : public IDeckLinkInputCallback
 {

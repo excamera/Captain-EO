@@ -2,4 +2,4 @@ AM_CPPFLAGS = -I$(srcdir)/../../display $(XCBPRESENT_CFLAGS) $(XCB_CFLAGS) $(PAN
 AM_CXXFLAGS = $(PICKY_CXXFLAGS)
 
 bin_PROGRAMS = barcoder
-barcoder_SOURCES = barcoder.hh barcoder.cpp 
+barcoder_SOURCES = main.cpp barcoder.hh barcoder.cpp 

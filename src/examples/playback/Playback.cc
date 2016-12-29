@@ -41,7 +41,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "TestPattern.h"
+#include "Playback.hh"
 
 pthread_mutex_t         sleepMutex;
 pthread_cond_t          sleepCond;
@@ -61,7 +61,7 @@ void sigfunc(int signum)
 int main(int argc, char *argv[])
 {
     int             exitStatus = 1;
-    TestPattern*    generator = NULL;
+    Playback*    generator = NULL;
 
     pthread_mutex_init(&sleepMutex, NULL);
     pthread_cond_init(&sleepCond, NULL);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     }
 
 
-    generator = new TestPattern(&config, scanner);
+    generator = new Playback(&config, scanner);
 
     if (!generator->Run())
         goto bail;
@@ -97,11 +97,11 @@ bail:
     return exitStatus;
 }
 
-TestPattern::~TestPattern()
+Playback::~Playback()
 {
 }
 
-TestPattern::TestPattern(BMDConfig *config, Scanner &s) :
+Playback::Playback(BMDConfig *config, Scanner &s) :
     m_refCount(1),
     m_config(config),
     m_running(false),
@@ -113,8 +113,6 @@ TestPattern::TestPattern(BMDConfig *config, Scanner &s) :
     m_frameDuration(0),
     m_frameTimescale(0),
     m_framesPerSecond(0),
-    m_videoFrameBlack(),
-    m_videoFrameBars(),
     m_totalFramesScheduled(0),
     m_totalFramesDropped(0),
     m_totalFramesCompleted(0),
@@ -122,7 +120,7 @@ TestPattern::TestPattern(BMDConfig *config, Scanner &s) :
     m_infile()
 {}
 
-bool TestPattern::Run()
+bool Playback::Run()
 {
     HRESULT                         result;
     int                             idx;
@@ -246,7 +244,7 @@ bail:
     return success;
 }
 
-void TestPattern::StartRunning()
+void Playback::StartRunning()
 {
     HRESULT                 result;
 
@@ -263,15 +261,7 @@ void TestPattern::StartRunning()
     {
         fprintf(stderr, "Failed to enable video output. Is another application using the card?\n");
         goto bail;
-    }
-
-    // Generate a frame of black
-    if (CreateFrame(&m_videoFrameBlack, FillBlack) != S_OK)
-        goto bail;
-
-    // Generate a frame of colour bars
-    if (CreateFrame(&m_videoFrameBars, FillColourBars) != S_OK)
-        goto bail;
+    } 
 
     // Begin video preroll by scheduling a second of frames in hardware
     m_totalFramesScheduled = 0;
@@ -291,29 +281,16 @@ bail:
     StopRunning();
 }
 
-void TestPattern::StopRunning()
+void Playback::StopRunning()
 {
     // Stop the audio and video output streams immediately
-    m_deckLinkOutput->StopScheduledPlayback(0, NULL, 0);
-    //
-    m_deckLinkOutput->DisableAudioOutput();
-    m_deckLinkOutput->DisableVideoOutput();
-
-    if (m_videoFrameBlack != NULL)
-        m_videoFrameBlack->Release();
-    m_videoFrameBlack = NULL;
-
-    if (m_videoFrameBars != NULL)
-        m_videoFrameBars->Release();
-    m_videoFrameBars = NULL;
-
-
+    m_deckLinkOutput->StopScheduledPlayback(0, NULL, 0); 
     // debugf.close();
     // Success; update the UI
     m_running = false;
 }
 
-void TestPattern::ScheduleNextFrame(bool prerolling)
+void Playback::ScheduleNextFrame(bool prerolling)
 {
     if (prerolling == false)
     {
@@ -346,7 +323,7 @@ void TestPattern::ScheduleNextFrame(bool prerolling)
 
 }
 
-HRESULT TestPattern::CreateFrame(IDeckLinkVideoFrame** frame, void (*fillFunc)(IDeckLinkVideoFrame*))
+HRESULT Playback::CreateFrame(IDeckLinkVideoFrame** frame, void (*fillFunc)(IDeckLinkVideoFrame*))
 {
     HRESULT                     result;
     int                         bytesPerPixel = GetBytesPerPixel(m_config->m_pixelFormat);
@@ -405,7 +382,7 @@ bail:
     return result;
 }
 
-void TestPattern::PrintStatusLine(uint32_t queued)
+void Playback::PrintStatusLine(uint32_t queued)
 {
     printf("scheduled %-16lu completed %-16lu dropped %-16lu frame level %-16u\n",
         m_totalFramesScheduled, m_totalFramesCompleted, m_totalFramesDropped, queued);
@@ -414,19 +391,19 @@ void TestPattern::PrintStatusLine(uint32_t queued)
 /************************* DeckLink API Delegate Methods *****************************/
 
 
-HRESULT TestPattern::QueryInterface(REFIID, LPVOID *ppv)
+HRESULT Playback::QueryInterface(REFIID, LPVOID *ppv)
 {
     *ppv = NULL;
     return E_NOINTERFACE;
 }
 
-ULONG TestPattern::AddRef()
+ULONG Playback::AddRef()
 {
     // gcc atomic operation builtin
     return __sync_add_and_fetch(&m_refCount, 1);
 }
 
-ULONG TestPattern::Release()
+ULONG Playback::Release()
 {
     // gcc atomic operation builtin
     ULONG newRefValue = __sync_sub_and_fetch(&m_refCount, 1);
@@ -435,7 +412,7 @@ ULONG TestPattern::Release()
     return newRefValue;
 }
 
-HRESULT TestPattern::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, BMDOutputFrameCompletionResult result)
+HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, BMDOutputFrameCompletionResult result)
 {
 
     if (do_exit) {
@@ -487,46 +464,12 @@ HRESULT TestPattern::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame
     return S_OK;
 }
 
-HRESULT TestPattern::ScheduledPlaybackHasStopped()
+HRESULT Playback::ScheduledPlaybackHasStopped()
 {
     return S_OK;
 }
 
 /*****************************************/
-
-
-void FillColourBars(IDeckLinkVideoFrame* theFrame)
-{
-    unsigned int*   nextWord;
-    unsigned long   width;
-    unsigned long   height;
-    unsigned int    bars[8] = {0x007F7FFF, 0x00FFFF00, 0x0000FFFF, 0x0000FF00, 0x00FF00FF, 0x000000FF, 0x00FF0000, 0x00000000};
-
-    theFrame->GetBytes((void**)&nextWord);
-    width = theFrame->GetWidth();
-    height = theFrame->GetHeight();
-
-    for (uint64_t y = 0; y < height; y++) 
-        for (uint64_t x = 0; x < width; x += 1) 
-            *(nextWord++) = bars[(x * 8) / width];
-}
-
-void FillBlack(IDeckLinkVideoFrame* theFrame)
-{
-    unsigned int*   nextWord;
-    unsigned long   width;
-    unsigned long   height;
-    unsigned long   wordsRemaining;
-
-    theFrame->GetBytes((void**)&nextWord);
-    width = theFrame->GetWidth();
-    height = theFrame->GetHeight();
-
-    wordsRemaining = (width * 4 * height) / 4;
-
-    while (wordsRemaining-- > 0)
-        *(nextWord++) = 0x0;
-}
 
 int GetBytesPerPixel(BMDPixelFormat pixelFormat)
 {
