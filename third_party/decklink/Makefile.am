@@ -1,5 +1,5 @@
 AM_CPPFLAGS = $(CXX14_FLAGS)
-AM_CXXFLAGS = $(PICKY_CXXFLAGS)
+AM_CXXFLAGS = -Wall -Wextra -Werror -Wno-multichar
 
 noinst_LIBRARIES = libdecklink.a
 

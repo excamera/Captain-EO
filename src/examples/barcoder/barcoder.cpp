@@ -59,7 +59,8 @@ void Barcoder::writeBit(RGBPixel* frame_bytes, int x, int y, bool set) {
 
 std::ostream& operator<<(std::ostream& os, Barcoder& br)   {
     const uint64_t frame_size = br.m_height * br.m_bytes_per_row;
-    char buf[frame_size];
+    std::vector<char> buf_vector( frame_size );
+    char *buf = buf_vector.data();
     while (true) {
         if (br.m_input.read(buf, frame_size).eof())
             break;
