@@ -1,0 +1,25 @@
+language: cpp
+sudo: required
+services: docker
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-6
+    - libxcb-present-dev
+
+before_script:
+  - sudo -E add-apt-repository -y 'deb http://ftp.us.debian.org/debian unstable main contrib non-free'
+  - sudo apt-get update -qq
+  - sudo apt-get install -y --force-yes libglfw3-dev
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 99
+
+script:
+  - ./autogen.sh
+  - ./configure
+  - make -j3 distcheck || (cat captain-eo-0.1/_build/src/tests/test-suite.log && exit 1)
+
+notifications:
+  slack: keithw:2nINWkhRQ60BzeTDNYXgpLkU

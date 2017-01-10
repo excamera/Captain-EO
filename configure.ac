@@ -2,14 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([displaytest], [0.01], [unknown@unknown])
+AC_INIT([captain-eo], [0.1], [excamera@cs.stanford.edu])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/display/display.hh])
 AC_CONFIG_HEADERS([config.h])
 
 # Add picky CXXFLAGS
-CXX14_FLAGS="-std=c++11 -pthread"
-PICKY_CXXFLAGS="-pedantic -Wall -Wno-multichar -fno-rtti -Wextra -Weffc++"
+CXX14_FLAGS="-std=c++14 -pthread"
+PICKY_CXXFLAGS="-pedantic -Wall -Wno-multichar -Wextra -Weffc++"
 AC_SUBST([CXX14_FLAGS])
 AC_SUBST([PICKY_CXXFLAGS])
 
@@ -20,7 +20,6 @@ AC_PROG_RANLIB
 # Checks for libraries.
 PKG_CHECK_MODULES([XCB], [xcb])
 PKG_CHECK_MODULES([XCBPRESENT], [xcb-present])
-PKG_CHECK_MODULES([PANGOCAIRO], [pangocairo])
 
 # Checks for header files.
 
