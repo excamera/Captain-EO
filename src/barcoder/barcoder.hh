@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <fstream>
 #include <array>
@@ -19,9 +21,10 @@ private:
     static void applyBarcode(XImage& image, int barcode_num, int x_offset, int y_offset); 
     static int readBarcode(XImage& image, int x_offset, int y_offset); 
 
+    void writeBit(RGBPixel* frame_bytes, int x, int y, bool set);
+
     //void barcodeFrameLower(RGBPixel *frame_bytes, uint64_t frameno);
     //void barcodeFrameUpper(RGBPixel *frame_bytes, uint64_t frameno);
-    // void writeBit(RGBPixel* frame_bytes, int x, int y, bool set);
 
     // int m_height;
     // int m_width;
