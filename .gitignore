@@ -36,3 +36,4 @@ src/examples/scanner/scanner-test
 /libtool
 /ltmain.sh
 /compile
+/test-driver

@@ -1,1 +1,1 @@
-SUBDIRS = display examples
+SUBDIRS = display examples tests

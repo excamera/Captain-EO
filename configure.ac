@@ -39,5 +39,6 @@ AC_CONFIG_FILES([Makefile
          src/examples/capture/Makefile
          src/examples/barcoder/Makefile
          src/examples/scanner/Makefile
-         ])
+	 src/tests/Makefile
+	 ])
 AC_OUTPUT
