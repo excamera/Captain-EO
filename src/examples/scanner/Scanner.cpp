@@ -51,12 +51,12 @@ uint64_t Scanner::scanLowerRight(RGBPixel *frame_bytes) {
     }
     return frameno;
 }
-void Scanner::scanFrame(RGBPixel *frame_bytes) {
+bool Scanner::scanFrame(RGBPixel *frame_bytes) {
     uint64_t ul_frameno = scanUpperLeft(frame_bytes),
              rl_frameno = scanLowerRight(frame_bytes);
     
     if (ul_frameno >= 0xFFFF || rl_frameno >= 0xFFFF) 
-        return;
+        return false;
 
     //std::lock_guard<std::mutex> lg(tracker_mutex);
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
@@ -66,6 +66,8 @@ void Scanner::scanFrame(RGBPixel *frame_bytes) {
     std::cout << "Scanned frame #" << m_next_frameno << " at " 
               << time_point_cast<microseconds>(tp).time_since_epoch().count() 
               << " with UL: " << ul_frameno << " RL: " << rl_frameno << std::endl;
+    m_next_frameno++;
+    return true;
 }
 
 bool Scanner::readBit(RGBPixel* frame_bytes, int x, int y) {

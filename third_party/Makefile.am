@@ -1,1 +1,1 @@
-SUBDIRS = decklink
+SUBDIRS = decklink daala_tools

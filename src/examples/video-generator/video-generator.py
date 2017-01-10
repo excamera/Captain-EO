@@ -35,6 +35,5 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--width", type=int, default=1280, help="Width of frames",
                             action="store")
     args = parser.parse_args()
-    print args
     generator = VideoGenerator(generateColorBars(), args.num_frames, args.height, args.width)
     generator.generate()

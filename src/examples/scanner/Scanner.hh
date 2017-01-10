@@ -28,7 +28,7 @@ public:
 
     ~Scanner();
 
-    void scanFrame(RGBPixel *frame_bytes);
+    bool scanFrame(RGBPixel *frame_bytes);
 
 private:
     uint64_t scanUpperLeft(RGBPixel *frame_bytes);    

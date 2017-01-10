@@ -90,14 +90,14 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
         {
 
             videoFrame->GetBytes(&frameBytes);
-            m_scanner.scanFrame((RGBPixel*)frameBytes);
-            /*
-            printf("Frame received (#%lu) [%s] - %s - Size: %li bytes\n",
+            if (!m_scanner.scanFrame((RGBPixel*)frameBytes))
+                return S_OK;
+            
+            printf("Frame received (#%lu) - %s - Size: %li bytes\n",
                 g_frameCount,
-                timecodeString != NULL ? timecodeString : "No timecode",
-                rightEyeFrame != NULL ? "Valid Frame (3D left/right)" : "Valid Frame",
+                "Valid Frame",
                 videoFrame->GetRowBytes() * videoFrame->GetHeight());
-            */
+            
 
             if (g_videoOutputFile != -1)
             {
