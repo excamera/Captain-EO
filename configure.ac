@@ -30,6 +30,7 @@ PKG_CHECK_MODULES([XCBPRESENT], [xcb-present])
 AC_CONFIG_FILES([Makefile
          third_party/Makefile
          third_party/decklink/Makefile
+         third_party/daala_tools/Makefile
          src/Makefile
          src/display/Makefile
          src/examples/Makefile
