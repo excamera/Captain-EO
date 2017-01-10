@@ -33,12 +33,11 @@ AC_CONFIG_FILES([Makefile
          third_party/daala_tools/Makefile
          src/Makefile
          src/display/Makefile
-         src/examples/Makefile
-         src/examples/playback/Makefile
-         src/examples/rgb-example/Makefile
-         src/examples/capture/Makefile
-         src/examples/barcoder/Makefile
-         src/examples/scanner/Makefile
+         src/playback/Makefile
+         src/rgb-example/Makefile
+         src/capture/Makefile
+         src/barcoder/Makefile
+         src/scanner/Makefile
 	 src/tests/Makefile
 	 ])
 AC_OUTPUT

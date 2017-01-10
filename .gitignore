@@ -13,11 +13,11 @@ start-test.sh
 
 third_party/daala_tools/daala/
 
-src/examples/capture/capture
-src/examples/playback/playback
-src/examples/rgb-example/rgb-example
-src/examples/barcoder/barcoder
-src/examples/scanner/scanner-test
+src/capture/capture
+src/playback/playback
+src/rgb-example/rgb-example
+src/barcoder/barcoder
+src/scanner/scanner-test
 
 /INSTALL
 /aclocal.m4
