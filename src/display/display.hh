@@ -125,6 +125,7 @@ private:
 
 public:
   XImage( XPixmap & pixmap );
+  XImage( std::vector<RGBPixel> image, int width, int height );
 
   RGBPixel & pixel( const unsigned int column, const unsigned int row );
   const uint8_t * data() const { return &image_.at( 0 ).blue; }

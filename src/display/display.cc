@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 
 #include <xcb/present.h>
@@ -278,6 +279,12 @@ XImage::XImage( XPixmap & pixmap )
   : width_( pixmap.size().first ),
     height_( pixmap.size().second ),
     image_( width_ * height_ )
+{}
+
+XImage::XImage( std::vector<RGBPixel> image, int width, int height )
+  : width_( width ),
+    height_( height ),
+    image_( image )
 {}
 
 void XPixmap::put( const XImage & image, const GraphicsContext & gc )
