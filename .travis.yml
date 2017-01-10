@@ -9,6 +9,7 @@ addons:
     packages:
     - g++-6
     - libxcb-present-dev
+    - libogg-dev
 
 before_script:
   - sudo -E add-apt-repository -y 'deb http://ftp.us.debian.org/debian unstable main contrib non-free'
