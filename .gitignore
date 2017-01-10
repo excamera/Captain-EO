@@ -10,6 +10,9 @@ Makefile.in
 nohup.out
 scan.log
 start-test.sh
+
+third_party/daala_tools/daala/
+
 src/examples/capture/capture
 src/examples/playback/playback
 src/examples/rgb-example/rgb-example
