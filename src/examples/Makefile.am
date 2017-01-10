@@ -1,1 +1,1 @@
-SUBDIRS = rgb-example playback capture barcoder scanner
+SUBDIRS = rgb-example scanner playback capture barcoder
