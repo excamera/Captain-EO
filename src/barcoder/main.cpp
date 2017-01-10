@@ -1,15 +1,20 @@
 #include "barcoder.hh"
-
-static const char* infile_default = "video.raw";
-static const char* outfile_default = "barcoded-video.raw";
+#include "display.hh"
 
 int main(int argc, char **argv) {
-    const char * in_filename = infile_default, *out_filename = outfile_default;
-    if (argc >= 2) 
+    const char * in_filename;
+    const char * out_filename;
+
+    if (argc >= 3) {
         in_filename = argv[1];
-    if (argc >= 3)
         out_filename = argv[2];
-    
+    }
+    else {
+        // handle error
+        in_filename = "NO_FILE_PROVIDED";
+        out_filename = "NO_FILE_PROVIDED";
+    }
+        
     std::ifstream infile;
     std::ofstream outfile;
     try { 
@@ -17,13 +22,27 @@ int main(int argc, char **argv) {
         if (infile.fail()) 
             throw in_filename;
         
-        outfile.open(out_filename, std::ios::out|std::ios::binary);
+        outfile.open(out_filename, std::ios::in|std::ios::binary);
         if (outfile.fail()) 
             throw out_filename;
-        
-        Barcoder br(infile);
-        outfile << br;
-        
+
+        int height = 720;
+        int width = 1280;
+        int size = height * width;
+
+        while (!infile.eof()) {
+            std::vector<RGBPixel> raw_image(size);
+            RGBPixel pixel; 
+            for (int i = 0; i < size; i++){
+                infile.read ((char*)&pixel, sizeof(RGBPixel));
+                raw_image[i] = pixel;
+            }
+
+            XImage image(raw_image, width, height);
+            Barcoder::applyBarcode(image, 15, width, height);
+
+            outfile << image.data();
+        }
     } catch (const char* filename) {
         std::cerr << "File " << filename << " could not be opened. Exiting." << std::endl;
         exit(1);
