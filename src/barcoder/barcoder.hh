@@ -19,8 +19,8 @@ public:
     // friend std::ostream& operator<<(std::ostream& os, Barcoder& br);
 
 private:
-    static void applyBarcode(XImage& image, uint16_t barcode_num, int x_offset, int y_offset); 
-    static uint16_t readBarcode(XImage& image, int x_offset, int y_offset); 
+    static void applyBarcode(XImage& image, uint16_t barcode_num, int xpos, int ypos); 
+    static uint16_t readBarcode(XImage& image, int xpos, int ypos); 
 
     // void writeBit(RGBPixel* frame_bytes, int x, int y, bool set);
 

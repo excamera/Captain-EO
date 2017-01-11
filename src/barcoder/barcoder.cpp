@@ -2,25 +2,25 @@
 
 static RGBPixel White = {0xFF, 0xFF, 0xFF, 0x0};
 static RGBPixel Black = {0x0, 0x0, 0x0, 0x0};
-static int num_code_rows = 4; // bits per column of code
-static int num_code_cols = num_code_rows;
-static int code_width_pix = 20; // code width in pixels
-static int code_height_pix = code_width_pix;
+static int barcode_grid_size = 4; // elements in each row and column
+static int barcode_edge_len = 10; // height and width in pixels of each element
 
 void Barcoder::applyBarcode(XImage& image, uint16_t barcode_num){
     applyBarcode(image, barcode_num, image.width()/2, image.height()/2);
 }
 
-void Barcoder::applyBarcode(XImage& image, uint16_t barcode_num, int x_offset, int y_offset){
+void Barcoder::applyBarcode(XImage& image, uint16_t barcode_num, int xpos, int ypos){
     unsigned int width = image.width();
     RGBPixel* raw_image = (RGBPixel*) image.data_unsafe();
 
-    for (int i = 0; i < num_code_rows; i++) {
-        for (int j = 0; j < num_code_cols; j++) {            
-
-            for (int y = y_offset; y < y_offset + code_height_pix/num_code_rows; y++) { 
-                for (int x = x_offset; x < x_offset + code_width_pix/num_code_cols; x++) {
-                    bool pixel_set = barcode_num & (1 << (i*num_code_rows + j));
+    for (int i = 0; i < barcode_grid_size; i++) {
+        for (int j = 0; j < barcode_grid_size; j++) {            
+            int x_offset = barcode_edge_len * i + xpos;
+            int y_offset = barcode_edge_len * j + ypos;
+                
+            for (int y = y_offset; y < y_offset + barcode_edge_len; y++) { 
+                for (int x = x_offset; x < x_offset + barcode_edge_len; x++) {
+                    bool pixel_set = barcode_num & (1 << (j*barcode_grid_size + i));
                     raw_image[y * width + x] = pixel_set ? Black : White;
                 }
             }
