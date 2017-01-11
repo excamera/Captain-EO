@@ -15,13 +15,13 @@ public:
     static void applyBarcode(XImage& image, uint16_t barcode_num); 
     static uint16_t readBarcode(XImage& image);
     
-    static void applyBarcode(XImage& image, uint16_t barcode_num, int x_offset, int y_offset); 
-    static uint16_t readBarcode(XImage& image, int x_offset, int y_offset); 
-
     //void barcodeFrame(RGBPixel *frame_bytes); 
     // friend std::ostream& operator<<(std::ostream& os, Barcoder& br);
 
 private:
+    static void applyBarcode(XImage& image, uint16_t barcode_num, int x_offset, int y_offset); 
+    static uint16_t readBarcode(XImage& image, int x_offset, int y_offset); 
+
     // void writeBit(RGBPixel* frame_bytes, int x, int y, bool set);
 
     //void barcodeFrameLower(RGBPixel *frame_bytes, uint64_t frameno);
