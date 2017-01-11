@@ -1,5 +1,7 @@
 #include <cstdlib>
 #include <iostream>
+#include <limits>
+#include <random>
 
 #include "file.hh"
 #include "barcode.hh"
@@ -42,15 +44,22 @@ int main( int argc, char *argv[] )
   }
 
   FileDescriptor stdout { STDOUT_FILENO };
+
+  /* initialize random number generator */
+  random_device rd;
+  mt19937 generator(rd());
+  uniform_int_distribution<uint64_t> uniform_distribution(0, numeric_limits<uint64_t>::max());
   
   /* iterate through frames and add barcode to each one */
   for ( unsigned int frame_no = 0; frame_no < frame_count; frame_no++ ) {
     const Chunk this_frame_chunk = input( frame_no * frame_length, frame_length );
     XImage this_frame { this_frame_chunk, width, height };
 
-    /* add barcode */
-    Barcode::writeBarcodes( this_frame, frame_no );
-
+    /* generate random barcode and add it to the frame */
+    uint64_t barcode_num = uniform_distribution(generator);
+    Barcode::writeBarcodes( this_frame, barcode_num );
+    cerr << frame_no << " " << barcode_num << "\n";
+    
     /* print out the image */
     stdout.write( this_frame.chunk() );
   }
