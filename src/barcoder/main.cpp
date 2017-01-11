@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
         if (infile.fail()) 
             throw in_filename;
         
-        outfile.open(out_filename, std::ios::in|std::ios::binary);
+        outfile.open(out_filename, std::ios::out|std::ios::binary);
         if (outfile.fail()) 
             throw out_filename;
 
@@ -39,9 +39,9 @@ int main(int argc, char **argv) {
             }
 
             XImage image(raw_image, width, height);
-            Barcoder::applyBarcode(image, 15, width, height);
+            Barcoder::applyBarcode(image, 8);
 
-            outfile << image.data();
+            outfile.write((char*)image.data(), sizeof(RGBPixel)*height*width);
         }
     } catch (const char* filename) {
         std::cerr << "File " << filename << " could not be opened. Exiting." << std::endl;
