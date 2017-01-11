@@ -1,3 +1,27 @@
-#!/bin/sh
+#!/bin/bash
 
-echo "Fake success!"
+../barcoder/barcode-write captain-eo-test-vectors/john.truncated.raw 1280 720 1> barcoded.john.truncated.raw 2> barcodes-written.log
+../barcoder/barcode-read barcoded.john.truncated.raw 1280 720 2> barcodes-read.log
+
+# check to make sure upper left and lower right barcodes match
+for line in $(cat barcodes-read.log); do
+    UL=$(echo $line | awk '{split($0,a,","); print a[1]}')
+    LR=$(echo $line | awk '{split($0,a,","); print a[2]}')
+
+    if [[ $UL != $LR ]]; then
+        echo "UL and LR barcodes do not match when barcodes are read"
+        exit -1;
+    fi
+done
+
+# check to make sure the barcodes read match the ones that were written
+paste barcodes-written.log barcodes-read.log | while IFS="$(printf '\t')" read -r f1 f2
+do
+    written=$(echo $f1 | awk '{split($0,a,","); print a[2]}')
+    read=$(echo $f2 | awk '{split($0,a,","); print a[2]}')
+
+    if [[ $UL != $LR ]]; then
+        echo "barcode written does not match the barcode read"
+        exit -1;
+    fi
+done
