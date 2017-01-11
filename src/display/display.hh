@@ -129,6 +129,7 @@ public:
   XImage( XPixmap & pixmap );
   XImage( const Chunk & image, const unsigned int width, const unsigned int height );
 
+  const RGBPixel & pixel( const unsigned int column, const unsigned int row ) const;
   RGBPixel & pixel( const unsigned int column, const unsigned int row );
   const uint8_t * data() const { return &image_.at( 0 ).blue; }
   uint8_t * data_unsafe() { return &image_.at( 0 ).blue; }

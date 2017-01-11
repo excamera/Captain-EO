@@ -312,7 +312,16 @@ void XPixmap::put( const XImage & image, const GraphicsContext & gc )
 					image.data() ) );
 }
 
-RGBPixel & XImage::pixel( const unsigned int column, const unsigned int row )
+const RGBPixel & XImage::pixel( const unsigned int column, const unsigned int row ) const
+{
+  if ( column >= width_ or row >= height_ ) {
+    throw out_of_range( "attempted access to pixel outside image" );
+  }
+
+  return image_.at( row * width() + column );
+}
+
+RGBPixel & XImage::pixel( const unsigned int column, const unsigned int row ) 
 {
   if ( column >= width_ or row >= height_ ) {
     throw out_of_range( "attempted access to pixel outside image" );
