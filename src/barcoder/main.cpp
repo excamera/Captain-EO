@@ -1,3 +1,5 @@
+#include <iostream>
+#include <fstream>
 #include "barcoder.hh"
 #include "display.hh"
 
@@ -39,7 +41,7 @@ int main(int argc, char **argv) {
             }
 
             XImage image(raw_image, width, height);
-            Barcoder::applyBarcode(image, 8);
+            Barcoder::writeBarcodes(image, 8);
 
             outfile.write((char*)image.data(), sizeof(RGBPixel)*height*width);
         }

@@ -1,41 +1,12 @@
 #pragma once
 
-#include <iostream>
-#include <fstream>
-#include <array>
 #include <cstdint>
 #include "display.hh"
 
-class Barcoder {
-public:
-    // Barcoder(std::ifstream& rawfile, int width, int height, int codesize, int nbitsPerRow);
-    // Barcoder(std::ifstream& rawfile);
-    // ~Barcoder(); 
+namespace Barcoder {
+    void writeBarcodes(XImage& image, uint16_t barcode_num); 
+    void writeBarcodeToPos(XImage& image, uint16_t barcode_num, int xpos, int ypos); 
 
-    static void applyBarcode(XImage& image, uint16_t barcode_num); 
-    static uint16_t readBarcode(XImage& image);
-    
-    //void barcodeFrame(RGBPixel *frame_bytes); 
-    // friend std::ostream& operator<<(std::ostream& os, Barcoder& br);
-
-private:
-    static void applyBarcode(XImage& image, uint16_t barcode_num, int xpos, int ypos); 
-    static uint16_t readBarcode(XImage& image, int xpos, int ypos); 
-
-    // void writeBit(RGBPixel* frame_bytes, int x, int y, bool set);
-
-    //void barcodeFrameLower(RGBPixel *frame_bytes, uint64_t frameno);
-    //void barcodeFrameUpper(RGBPixel *frame_bytes, uint64_t frameno);
-
-    // int m_height;
-    // int m_width;
-    // int m_bytes_per_row;
-    // int m_total_bits;
-    // int m_code_size;
-    // int m_rowBits;
-
-    // uint64_t m_next_frameno;
-    // std::ifstream& m_input;
-};
-
-// std::ostream& operator<<(std::ostream& os, Barcoder& br);
+    uint16_t readBarcodes(XImage& image);
+    uint16_t readBarcodeFromPos(XImage& image, int xpos, int ypos); 
+}
