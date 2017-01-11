@@ -1,1 +1,1 @@
-SUBDIRS = display rgb-example scanner playback capture barcoder tests
+SUBDIRS = util display rgb-example scanner playback capture barcoder tests
