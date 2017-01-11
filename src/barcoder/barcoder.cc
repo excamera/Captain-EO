@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
-#include <iostream>
 #include "barcoder.hh"
 
 static RGBPixel White = {0xFF, 0xFF, 0xFF, 0x0};
