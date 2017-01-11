@@ -84,13 +84,10 @@ uint64_t Barcode::readBarcodeFromPos(const XImage& image,
             }
             average /= (barcode_block_len * barcode_block_len);
 
-            #ifdef _BARCODE_DEBUG
-            RGBPixel p;
-            assert(sizeof(uint8_t) == 1);
-            assert(sizeof(p.blue) == sizeof(uint8_t));
-            assert(sizeof(p.green) == sizeof(uint8_t));
-            assert(sizeof(p.red) == sizeof(uint8_t));
-            #endif /* _BARCODE_DEBUG */
+            static_assert( sizeof(uint8_t) == 1, "uint8_t size must be 1 byte" );
+            static_assert( sizeof(RGBPixel().red) == 1, "component size must be 1 byte" );
+            static_assert( sizeof(RGBPixel().green) == 1, "component size must be 1 byte" );
+            static_assert( sizeof(RGBPixel().blue) == 1, "component size must be 1 byte" );
 
             const bool bit_set = average < 128;
             frame_num |= bit_set ? (((uint64_t)1) << (j*barcode_grid_size + i)) : 0;

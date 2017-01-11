@@ -3,8 +3,6 @@
 #include <cstdint>
 #include "display.hh"
 
-#define _BARCODE_DEBUG
-
 namespace Barcode {
     void writeBarcodes(XImage& image, uint64_t barcode_num); 
     void writeBarcodeToPos(XImage& image, uint64_t barcode_num, const unsigned int xpos, const unsigned int ypos); 
