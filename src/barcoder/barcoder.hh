@@ -4,9 +4,9 @@
 #include "display.hh"
 
 namespace Barcoder {
-    void writeBarcodes(XImage& image, uint16_t barcode_num); 
-    void writeBarcodeToPos(XImage& image, uint16_t barcode_num, int xpos, int ypos); 
+    void writeBarcodes(XImage& image, uint64_t barcode_num); 
+    void writeBarcodeToPos(XImage& image, uint64_t barcode_num, const unsigned int xpos, const unsigned int ypos); 
 
-    std::pair<uint16_t, uint16_t> readBarcodes(XImage& image);
-    uint16_t readBarcodeFromPos(XImage& image, int xpos, int ypos); 
+    std::pair<uint64_t, uint64_t> readBarcodes(XImage& image);
+    uint64_t readBarcodeFromPos(XImage& image, const unsigned int xpos, const unsigned int ypos); 
 }
