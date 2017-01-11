@@ -1,14 +1,14 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
-#include "barcoder.hh"
+#include "barcode.hh"
 
 static RGBPixel White = {0xFF, 0xFF, 0xFF, 0x0};
 static RGBPixel Black = {0x0, 0x0, 0x0, 0x0};
 static unsigned int barcode_grid_size = 8; /* blocks in each row and column */
 static unsigned int barcode_block_len = 10; /* height and width of each block (in pixels) */
 
-void Barcoder::writeBarcodes(XImage& image, const uint64_t barcode_num)
+void Barcode::writeBarcodes(XImage& image, const uint64_t barcode_num)
 {
     /* write upper left (UL) barcode */
     writeBarcodeToPos(image,
@@ -23,7 +23,7 @@ void Barcoder::writeBarcodes(XImage& image, const uint64_t barcode_num)
                       image.height() - barcode_grid_size*barcode_block_len);
 }
 
-void Barcoder::writeBarcodeToPos(XImage& image, const uint64_t barcode_num,
+void Barcode::writeBarcodeToPos(XImage& image, const uint64_t barcode_num,
                                  const unsigned int xpos,
                                  const unsigned int ypos)
 {
@@ -46,7 +46,7 @@ void Barcoder::writeBarcodeToPos(XImage& image, const uint64_t barcode_num,
     }
 }
 
-std::pair<uint64_t, uint64_t> Barcoder::readBarcodes(const XImage& image)
+std::pair<uint64_t, uint64_t> Barcode::readBarcodes(const XImage& image)
 {
 
     /* read upper left (UL) barcode */
@@ -62,7 +62,7 @@ std::pair<uint64_t, uint64_t> Barcoder::readBarcodes(const XImage& image)
     return std::make_pair(upper_left, lower_right);
 }
 
-uint64_t Barcoder::readBarcodeFromPos(const XImage& image,
+uint64_t Barcode::readBarcodeFromPos(const XImage& image,
                                       const unsigned int xpos,
                                       const unsigned int ypos)
 {
@@ -84,13 +84,13 @@ uint64_t Barcoder::readBarcodeFromPos(const XImage& image,
             }
             average /= (barcode_block_len * barcode_block_len);
 
-            #ifdef _BARCODER_DEBUG
+            #ifdef _BARCODE_DEBUG
             RGBPixel p;
             assert(sizeof(uint8_t) == 1);
             assert(sizeof(p.blue) == sizeof(uint8_t));
             assert(sizeof(p.green) == sizeof(uint8_t));
             assert(sizeof(p.red) == sizeof(uint8_t));
-            #endif /* _BARCODER_DEBUG */
+            #endif /* _BARCODE_DEBUG */
 
             const bool bit_set = average < 128;
             frame_num |= bit_set ? (((uint64_t)1) << (j*barcode_grid_size + i)) : 0;
