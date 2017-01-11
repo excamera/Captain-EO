@@ -4,6 +4,7 @@
 #include "file.hh"
 #include "barcode.hh"
 
+/* #define _BARCODE_READ_DEBUG */
 using namespace std;
 
 unsigned int paranoid_atoi( const string & in )
@@ -24,7 +25,7 @@ int main( int argc, char *argv[] )
   }
 
   if ( argc != 4 ) {
-    cerr << "Usage: " << argv[ 0 ] << " FILE WIDTH HEIGHT\n";
+    cerr << "Usage: " << argv[ 0 ] << " FILE WIDTH HEIGHT\n\n\tNote: thie program writes log file to stderr.\n\n";
     return EXIT_FAILURE;
   }
 
@@ -38,7 +39,9 @@ int main( int argc, char *argv[] )
   if ( input.size() != frame_count * frame_length ) {
     throw runtime_error( "file size is not multiple of frame size" );
   } else {
+    #ifdef _BARCODE_READ_DEBUG
     cerr << "Found " << frame_count << " frames of size " << width << "x" << height << ".\n";
+    #endif
   }
 
   FileDescriptor stdout { STDOUT_FILENO };
@@ -50,7 +53,7 @@ int main( int argc, char *argv[] )
 
     /* read barcode */
     pair<uint64_t, uint64_t> barcodes = Barcode::readBarcodes( this_frame );
-    cout << barcodes.first << ',' << barcodes.second << '\n';
+    cerr << barcodes.first << "," << barcodes.second << "\n";
   }
   
   return EXIT_SUCCESS;

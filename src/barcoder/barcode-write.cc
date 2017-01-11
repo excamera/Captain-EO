@@ -6,6 +6,8 @@
 #include "file.hh"
 #include "barcode.hh"
 
+/* #define _BARCODE_WRITE_DEBUG */
+
 using namespace std;
 
 unsigned int paranoid_atoi( const string & in )
@@ -26,7 +28,7 @@ int main( int argc, char *argv[] )
   }
 
   if ( argc != 4 ) {
-    cerr << "Usage: " << argv[ 0 ] << " FILE WIDTH HEIGHT\n";
+    cerr << "Usage: " << argv[ 0 ] << " FILE WIDTH HEIGHT\n\n\tNOTE: this program...\n\t(1) writes barcoded image to stdout.\n\t(2) writes log file to stderr.\n\n";
     return EXIT_FAILURE;
   }
 
@@ -40,7 +42,9 @@ int main( int argc, char *argv[] )
   if ( input.size() != frame_count * frame_length ) {
     throw runtime_error( "file size is not multiple of frame size" );
   } else {
+    #ifdef _BARCODE_WRITE_DEBUG
     cerr << "Found " << frame_count << " frames of size " << width << "x" << height << ".\n";
+    #endif
   }
 
   FileDescriptor stdout { STDOUT_FILENO };
@@ -58,7 +62,7 @@ int main( int argc, char *argv[] )
     /* generate random barcode and add it to the frame */
     uint64_t barcode_num = uniform_distribution(generator);
     Barcode::writeBarcodes( this_frame, barcode_num );
-    cerr << frame_no << " " << barcode_num << "\n";
+    cerr << frame_no << "," << barcode_num << "\n";
     
     /* print out the image */
     stdout.write( this_frame.chunk() );
