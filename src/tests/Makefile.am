@@ -9,3 +9,4 @@ barcode-roundtrip.log: fetch-vectors.log
 
 clean-local:
 	-rm -rf captain-eo-test-vectors
+	-rm -f barcoded.john.truncated.raw barcodes-written.log barcodes-read.log
