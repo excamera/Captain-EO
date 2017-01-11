@@ -12,9 +12,8 @@ int main(int argc, char **argv) {
         out_filename = argv[2];
     }
     else {
-        // handle error
-        in_filename = "NO_FILE_PROVIDED";
-        out_filename = "NO_FILE_PROVIDED";
+        std::cout << "usage: " << argv[0] << " <input> <output>" << std::endl;
+        return -1;
     }
         
     std::ifstream infile;
@@ -41,8 +40,14 @@ int main(int argc, char **argv) {
             }
 
             XImage image(raw_image, width, height);
-            Barcoder::writeBarcodes(image, 8);
 
+            int barcode_num = 8;
+            Barcoder::writeBarcodes(image, barcode_num);
+            std::cout << "write (UL, LR) (" << barcode_num << ", " << barcode_num << ")" << std::endl;
+
+            auto x = Barcoder::readBarcodes(image);
+            std::cout << "read  (UL, LR) (" << x.first << ", " << x.second << ")" << std::endl;
+            
             outfile.write((char*)image.data(), sizeof(RGBPixel)*height*width);
         }
     } catch (const char* filename) {
