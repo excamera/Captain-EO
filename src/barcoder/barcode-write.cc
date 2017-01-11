@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "file.hh"
-#include "barcoder.hh"
+#include "barcode.hh"
 
 using namespace std;
 
@@ -49,7 +49,7 @@ int main( int argc, char *argv[] )
     XImage this_frame { this_frame_chunk, width, height };
 
     /* add barcode */
-    Barcoder::writeBarcodes( this_frame, frame_no );
+    Barcode::writeBarcodes( this_frame, frame_no );
 
     /* print out the image */
     stdout.write( this_frame.chunk() );

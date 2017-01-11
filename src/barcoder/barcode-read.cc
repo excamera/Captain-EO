@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "file.hh"
-#include "barcoder.hh"
+#include "barcode.hh"
 
 using namespace std;
 
@@ -49,7 +49,7 @@ int main( int argc, char *argv[] )
     XImage this_frame { this_frame_chunk, width, height };
 
     /* read barcode */
-    pair<uint64_t, uint64_t> barcodes = Barcoder::readBarcodes( this_frame );
+    pair<uint64_t, uint64_t> barcodes = Barcode::readBarcodes( this_frame );
     cout << barcodes.first << ',' << barcodes.second << '\n';
   }
   
