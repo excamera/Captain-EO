@@ -50,7 +50,7 @@ int main( int argc, char *argv[] )
 
     /* read barcode */
     pair<uint64_t, uint64_t> barcodes = Barcoder::readBarcodes( this_frame );
-    cout << barcodes.first << "," barcodes.second << '\n';
+    cout << barcodes.first << ',' << barcodes.second << '\n';
   }
   
   return EXIT_SUCCESS;
