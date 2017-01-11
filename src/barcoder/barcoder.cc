@@ -94,7 +94,7 @@ uint64_t Barcoder::readBarcodeFromPos(const XImage& image,
             #endif /* _BARCODER_DEBUG */
 
             const bool bit_set = average < 128;
-            frame_num |= bit_set ? (1 << (j*barcode_grid_size + i)) : 0;
+            frame_num |= bit_set ? (((uint64_t)1) << (j*barcode_grid_size + i)) : 0;
         }
     }
 
