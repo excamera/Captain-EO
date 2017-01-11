@@ -18,6 +18,7 @@ src/playback/playback
 src/rgb-example/rgb-example
 src/barcoder/barcoder
 src/barcoder/barcode-write
+src/barcoder/barcode-read
 src/scanner/scanner-test
 
 /INSTALL
