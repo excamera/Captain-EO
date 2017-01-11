@@ -6,7 +6,7 @@
 static RGBPixel White = {0xFF, 0xFF, 0xFF, 0x0};
 static RGBPixel Black = {0x0, 0x0, 0x0, 0x0};
 static unsigned int barcode_grid_size = 8; /* blocks in each row and column */
-static unsigned int barcode_block_len = 10; /* height and width of each block (in pixels) */
+static unsigned int barcode_block_len = 16; /* height and width of each block (in pixels) */
 
 void Barcode::writeBarcodes(XImage& image, const uint64_t barcode_num)
 {
