@@ -6,6 +6,7 @@
 #include <xcb/present.h>
 
 #include "display.hh"
+#include "chunk.hh"
 
 using namespace std;
 
@@ -281,11 +282,18 @@ XImage::XImage( XPixmap & pixmap )
     image_( width_ * height_ )
 {}
 
-XImage::XImage( std::vector<RGBPixel> image, int width, int height )
+XImage::XImage( const Chunk & image, const unsigned int width, const unsigned int height )
   : width_( width ),
     height_( height ),
-    image_( image )
-{}
+    image_()
+{
+  if ( image.size() != width * height * sizeof( RGBPixel ) ) {
+    throw runtime_error( "XImage: invalid chunk size" );
+  }
+
+  image_.resize( width * height );
+  memcpy( image_.data(), image.buffer(), image.size() );
+}
 
 void XPixmap::put( const XImage & image, const GraphicsContext & gc )
 {

@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+#include "chunk.hh"
+
 class XCBObject
 {
 public:
@@ -125,12 +127,13 @@ private:
 
 public:
   XImage( XPixmap & pixmap );
-  XImage( std::vector<RGBPixel> image, int width, int height );
+  XImage( const Chunk & image, const unsigned int width, const unsigned int height );
 
   RGBPixel & pixel( const unsigned int column, const unsigned int row );
   const uint8_t * data() const { return &image_.at( 0 ).blue; }
   uint8_t * data_unsafe() { return &image_.at( 0 ).blue; }
 
+  Chunk chunk() const { return Chunk( data(), image_.size() * sizeof( RGBPixel ) ); }
 
   unsigned int width() const { return width_; }
   unsigned int height() const { return height_; }

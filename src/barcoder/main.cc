@@ -2,6 +2,7 @@
 #include <fstream>
 #include "barcoder.hh"
 #include "display.hh"
+#include "chunk.hh"
 
 int main(int argc, char **argv) {
     const char * in_filename;
@@ -32,14 +33,14 @@ int main(int argc, char **argv) {
         int size = height * width;
 
         while (!infile.eof()) {
-            std::vector<RGBPixel> raw_image(size);
-            RGBPixel pixel; 
-            for (int i = 0; i < size; i++){
-                infile.read ((char*)&pixel, sizeof(RGBPixel));
-                raw_image[i] = pixel;
+            std::vector<uint8_t> raw_image(size);
+            for (unsigned int i = 0; i < size * sizeof(RGBPixel); i++){
+	      char byte;
+	      infile.read (&byte, 1);
+	      raw_image[i] = byte;
             }
 
-            XImage image(raw_image, width, height);
+            XImage image(Chunk(raw_image), width, height);
 
             int barcode_num = 8;
             Barcoder::writeBarcodes(image, barcode_num);
