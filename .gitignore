@@ -40,3 +40,5 @@ src/scanner/scanner-test
 /ltmain.sh
 /compile
 /test-driver
+*.log
+*.trs
