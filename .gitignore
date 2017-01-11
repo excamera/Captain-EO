@@ -17,6 +17,7 @@ src/capture/capture
 src/playback/playback
 src/rgb-example/rgb-example
 src/barcoder/barcoder
+src/barcoder/barcode-write
 src/scanner/scanner-test
 
 /INSTALL
