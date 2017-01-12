@@ -2,8 +2,24 @@ import argparse
 import os
 import shutil
 import subprocess
+import re
 from rgb2y4m import RGB2Y4M
 
+def parse_lines_from_log_file(log_file):
+    '''
+    parse_lines_from_log_file: helper function to get rid of the extraneous
+    information in the log files produced by the barcode binaries
+    '''
+
+    lines = log_file.read().split('\n')
+        
+    # remove comment lines
+    lines = filter(lambda line: re.match('^\s*#.*', line) is None, lines)
+
+    # remove blank lines
+    lines = filter(lambda line: re.match('^\s*$', line) is None, lines)
+    
+    return lines
 
 class VideoException(Exception):
     pass
@@ -25,7 +41,10 @@ class LogReader(object):
 class PlaybackLogReader(LogReader):
 
     def ingestLog(self, barcodeLog):
-        for line in self.log.readlines():
+        logFileLines = parse_lines_from_log_file(self.log)
+        logFileLines = logFileLines[1:] # remove csv headers
+
+        for line in logFileLines:
             idx, ul, lr, time = [int(item) for item in line.split()]
             if ul != lr:
                 raise VideoBarcodeException
@@ -41,7 +60,10 @@ class CaptureLogReader(LogReader):
         self.lrTimes = {}
 
     def ingestLog(self, barcodeLog):
-        for line in self.log.readlines():
+        logFileLines = parse_lines_from_log_file(self.log)
+        logFileLines = logFileLines[1:] # remove csv headers
+
+        for line in logFileLines:
             idx, ul, lr, time = [int(item) for item in line.split()]
             if ul == lr:
                 if self.records.get(ul) is None:
@@ -54,7 +76,10 @@ class CaptureLogReader(LogReader):
 
 def ingestBarcodeLog(log):
     barcodeLog = {}
-    for line in log.readlines():
+
+    logFileLines = parse_lines_from_log_file(log)
+    logFileLines = logFileLines[1:] # remove csv headers
+    for line in logFileLines:
         idx, barcode = [int(item) for item in line.split(',')]
         barcodeLog[barcode] = idx
     return barcodeLog
