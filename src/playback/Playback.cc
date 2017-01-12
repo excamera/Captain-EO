@@ -40,8 +40,17 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 #include "Playback.hh"
+#include "display.hh"
+#include "chunk.hh"
+#include "../barcoder/barcode.hh"
+
+using std::chrono::time_point;
+using std::chrono::high_resolution_clock;
+using std::chrono::time_point_cast;
+using std::chrono::microseconds;
 
 pthread_mutex_t         sleepMutex;
 pthread_cond_t          sleepCond;
@@ -70,7 +79,6 @@ int main(int argc, char *argv[])
     signal(SIGTERM, sigfunc);
     signal(SIGHUP, sigfunc);
     // debugf.open("debug.raw", std::ios::out|std::ios::binary);
-    Scanner scanner;
 
     BMDConfig config;
     if (!config.ParseArguments(argc, argv))
@@ -80,7 +88,7 @@ int main(int argc, char *argv[])
     }
 
 
-    generator = new Playback(&config, scanner);
+    generator = new Playback(&config);
 
     if (!generator->Run())
         goto bail;
@@ -101,7 +109,7 @@ Playback::~Playback()
 {
 }
 
-Playback::Playback(BMDConfig *config, Scanner &s) :
+Playback::Playback(BMDConfig *config) :
     m_refCount(1),
     m_config(config),
     m_running(false),
@@ -116,7 +124,7 @@ Playback::Playback(BMDConfig *config, Scanner &s) :
     m_totalFramesScheduled(0),
     m_totalFramesDropped(0),
     m_totalFramesCompleted(0),
-    m_scanner(s),
+    m_logfile(),
     m_infile()
 {}
 
@@ -194,6 +202,14 @@ bool Playback::Run()
     } else {
         fprintf(stderr, "-v <video filename> flag required\n");
         exit(1);
+    }
+
+    if (m_config->m_logFilename != NULL) {
+        m_logfile.open(m_config->m_logFilename, std::ios::out);
+        if (!m_logfile.is_open()) {
+            fprintf(stderr, "Could not open logfile.\n");
+            goto bail;
+        } 
     }
 
     m_config->DisplayConfiguration();
@@ -420,15 +436,31 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         completedFrame->Release();
         return S_OK;
     }
+    time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
     void *frameBytes = NULL;
     completedFrame->GetBytes(&frameBytes);
 
     switch (result) {
         case bmdOutputFrameCompleted: 
-            m_scanner.scanFrame((RGBPixel*)frameBytes);
+        {
+            Chunk chunk((uint8_t*)frameBytes, completedFrame->GetRowBytes() * completedFrame->GetHeight());
+            XImage img(chunk, completedFrame->GetWidth(), completedFrame->GetHeight());
+            auto barcodes = Barcode::readBarcodes(img);
+
+            if (m_logfile.is_open())
+                m_logfile   << m_totalFramesCompleted << " " 
+                            << barcodes.first << " " << barcodes.second << " "
+                            << time_point_cast<microseconds>(tp).time_since_epoch().count() 
+                            << std::endl;
+            else 
+                std::cout   << m_totalFramesCompleted << " " 
+                            << barcodes.first << " " << barcodes.second << " "
+                            << time_point_cast<microseconds>(tp).time_since_epoch().count() 
+                            << std::endl;
             std::cout << "Frame #" << m_totalFramesCompleted << " on time." << std::endl;
             break;
+        }
         case bmdOutputFrameDisplayedLate:
             std::cout << "Warning: Frame " << m_totalFramesCompleted << " Displayed Late. " << std::endl;
             break;

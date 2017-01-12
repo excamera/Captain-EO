@@ -25,9 +25,11 @@
 ** -LICENSE-END-
 */
 
+#ifndef __PLAYBACK_HH__
+#define __PLAYBACK_HH__
+
 #include "DeckLinkAPI.h"
 #include "Config.h"
-#include "Scanner.hh"
 #include <fstream>
 
 class Playback : public IDeckLinkVideoOutputCallback {
@@ -48,7 +50,7 @@ private:
     unsigned long           m_totalFramesDropped;
     unsigned long           m_totalFramesCompleted;
 
-    Scanner                 &m_scanner;
+    std::ofstream           m_logfile;
     std::ifstream           m_infile;
     ~Playback();
 
@@ -60,7 +62,7 @@ private:
     void            PrintStatusLine(uint32_t queued);
 
 public:
-    Playback(BMDConfig *config, Scanner &s);
+    Playback(BMDConfig *config);
     bool Run();
 
     // *** DeckLink API implementation of IDeckLinkVideoOutputCallback IDeckLinkAudioOutputCallback *** //
@@ -79,3 +81,5 @@ public:
 };
 
 int GetBytesPerPixel(BMDPixelFormat pixelFormat);
+
+#endif

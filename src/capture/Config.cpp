@@ -39,6 +39,7 @@ BMDConfig::BMDConfig() :
     m_inputFlags(bmdVideoInputFlagDefault),
     m_pixelFormat(bmdFormat8BitBGRA),
     m_videoOutputFile(),
+    m_logFilename(),
     m_playback(false),
     m_deckLinkName(),
     m_displayModeName()
@@ -59,7 +60,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
     int     ch;
     bool    displayHelp = false;
 
-    while ((ch = getopt(argc, argv, "d:hv:m:n:p:i")) != -1)
+    while ((ch = getopt(argc, argv, "d:hv:m:n:p:il:")) != -1)
     {
         switch (ch)
         {
@@ -94,6 +95,9 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
                 break;
             case 'i':
                 m_playback = true;
+                break;
+            case 'l':
+                m_logFilename = optarg;
                 break;
 
             case 'h':

@@ -29,12 +29,11 @@
 #define __CAPTURE_H__
 
 #include "DeckLinkAPI.h"
-#include "Scanner.hh"
 
 class DeckLinkCaptureDelegate : public IDeckLinkInputCallback
 {
 public:
-    DeckLinkCaptureDelegate(Scanner &s);
+    DeckLinkCaptureDelegate();
 
     virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, LPVOID *) { return E_NOINTERFACE; }
     virtual ULONG STDMETHODCALLTYPE AddRef(void);
@@ -44,7 +43,6 @@ public:
     virtual void preview(void*, int);
 private:
     int32_t             m_refCount;
-    Scanner             &m_scanner;
 };
 
 #endif

@@ -32,10 +32,21 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <csignal>
+#include <fstream>
+#include <chrono>
+#include <iostream>
 
 #include "DeckLinkAPI.h"
 #include "Capture.h"
 #include "Config.h"
+#include "display.hh"
+#include "chunk.hh"
+#include "../barcoder/barcode.hh"
+
+using std::chrono::time_point;
+using std::chrono::high_resolution_clock;
+using std::chrono::time_point_cast;
+using std::chrono::microseconds;
 
 static pthread_mutex_t  g_sleepMutex;
 static pthread_cond_t   g_sleepCond;
@@ -45,12 +56,13 @@ static bool             g_do_exit = false;
 static BMDConfig        g_config;
 
 static IDeckLinkInput*  g_deckLinkInput = NULL;
+static std::ofstream    logfile;
 
 static int64_t  g_frameCount = 0;
+static uint64_t g_validFrameCount = 0;
 
-DeckLinkCaptureDelegate::DeckLinkCaptureDelegate(Scanner &s) : 
-    m_refCount(1),
-    m_scanner(s)
+DeckLinkCaptureDelegate::DeckLinkCaptureDelegate() : 
+    m_refCount(1)
 {
 }
 
@@ -75,6 +87,7 @@ void DeckLinkCaptureDelegate::preview(void*, int) {}
 HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame* videoFrame, IDeckLinkAudioInputPacket*)
 {
     void*                               frameBytes;
+    time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
     // Handle Video Frame
     if (videoFrame)
@@ -88,23 +101,45 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
         }
         else
         {
+            uint64_t framesize = videoFrame->GetRowBytes() * videoFrame->GetHeight();
 
             videoFrame->GetBytes(&frameBytes);
-            if (!m_scanner.scanFrame((RGBPixel*)frameBytes))
-                return S_OK;
+            Chunk chunk((uint8_t*)frameBytes, framesize);
+            XImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
+            auto barcodes = Barcode::readBarcodes(img);
+            //if (!m_scanner.scanFrame((RGBPixel*)frameBytes))
+            //    return S_OK;
             
             printf("Frame received (#%lu) - %s - Size: %li bytes\n",
                 g_frameCount,
                 "Valid Frame",
-                videoFrame->GetRowBytes() * videoFrame->GetHeight());
+                framesize);
             
 
-            if (g_videoOutputFile != -1)
-            {
-                ssize_t ret = write(g_videoOutputFile, frameBytes, videoFrame->GetRowBytes() * videoFrame->GetHeight());
-                if (ret < 0) 
-                    fprintf(stderr, "Cannot write to file.\n");
+
+
+            if (barcodes.first != 0xFFFFFFFFFFFFFFFF 
+                || barcodes.second != 0xFFFFFFFFFFFFFFFF) {
+                if (logfile.is_open())
+                    logfile << g_validFrameCount << " " 
+                            << barcodes.first << " " << barcodes.second << " "
+                            << time_point_cast<microseconds>(tp).time_since_epoch().count() 
+                            << std::endl;
+                else
+                    std::cout   << g_validFrameCount << " " 
+                                << barcodes.first << " " << barcodes.second << " "
+                                << time_point_cast<microseconds>(tp).time_since_epoch().count() 
+                                << std::endl;
+                g_validFrameCount++;
+
+                if (g_videoOutputFile != -1)
+                {
+                    ssize_t ret = write(g_videoOutputFile, frameBytes, framesize);
+                    if (ret < 0) 
+                        fprintf(stderr, "Cannot write to file.\n");
+                }
             }
+
 
             preview(frameBytes, videoFrame->GetRowBytes() * videoFrame->GetHeight());
         }
@@ -160,8 +195,8 @@ bail:
 class DeckLinkCapturePreview : public DeckLinkCaptureDelegate 
 {
 public:
-    DeckLinkCapturePreview(Scanner &s, int width, int height) : 
-        DeckLinkCaptureDelegate(s),
+    DeckLinkCapturePreview(int width, int height) : 
+        DeckLinkCaptureDelegate(),
         window(width, height),
         picture(window),
         image(picture),
@@ -219,8 +254,6 @@ int main(int argc, char *argv[])
     signal(SIGINT, sigfunc);
     signal(SIGTERM, sigfunc);
     signal(SIGHUP, sigfunc);
-
-    Scanner scanner;
 
     // Process the command line arguments
     if (!g_config.ParseArguments(argc, argv))
@@ -327,9 +360,9 @@ int main(int argc, char *argv[])
 
     // Configure the capture callback
     if (g_config.m_playback)
-        delegate = new DeckLinkCapturePreview(scanner, displayMode->GetWidth(), displayMode->GetHeight());
+        delegate = new DeckLinkCapturePreview(displayMode->GetWidth(), displayMode->GetHeight());
     else
-        delegate = new DeckLinkCaptureDelegate(scanner);
+        delegate = new DeckLinkCaptureDelegate();
     g_deckLinkInput->SetCallback(delegate);
 
     // Open output files
@@ -339,6 +372,14 @@ int main(int argc, char *argv[])
         if (g_videoOutputFile < 0)
         {
             fprintf(stderr, "Could not open video output file \"%s\"\n", g_config.m_videoOutputFile);
+            goto bail;
+        }
+    }
+
+    if (g_config.m_logFilename != NULL) {
+        logfile.open(g_config.m_logFilename, std::ios::out);
+        if (!logfile.is_open()) {
+            fprintf(stderr, "Error opening logfile.\n");
             goto bail;
         }
     }
@@ -400,6 +441,9 @@ bail:
 
     if (deckLinkIterator != NULL)
         deckLinkIterator->Release();
+
+    if (logfile.is_open())
+        logfile.close();
 
     return exitStatus;
 }

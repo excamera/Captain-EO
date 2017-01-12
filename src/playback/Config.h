@@ -47,6 +47,7 @@ public:
     BMDPixelFormat          m_pixelFormat;
 
     const char*             m_videoInputFile;
+    const char*             m_logFilename;
 
 private:
     char*                   m_deckLinkName;

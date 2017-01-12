@@ -49,6 +49,7 @@ public:
     BMDPixelFormat          m_pixelFormat;
 
     const char*             m_videoOutputFile;
+    const char*             m_logFilename;
     bool                    m_playback;
 
 private:

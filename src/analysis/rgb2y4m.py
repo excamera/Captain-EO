@@ -25,7 +25,7 @@ class RGB2Y4M:
             with open(outfilename, "wb") as outfile:
                 outfile.write(self.video.read(self.framesize))
             #This is bad, change to subprocess.check_call
-            os.system("ffmpeg -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format bgra -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 %s" %(outfilename, self.dirname + "/" + str(frameno) + ".y4m"))
+            os.system("avconv -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format bgra -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 %s" %(outfilename, self.dirname + "/" + str(frameno) + ".y4m"))
 
             
             
