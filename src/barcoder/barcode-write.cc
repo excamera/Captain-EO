@@ -1,12 +1,11 @@
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <limits>
 #include <random>
 
 #include "file.hh"
 #include "barcode.hh"
-
-/* #define _BARCODE_WRITE_DEBUG */
 
 using namespace std;
 
@@ -42,10 +41,15 @@ int main( int argc, char *argv[] )
   if ( input.size() != frame_count * frame_length ) {
     throw runtime_error( "file size is not multiple of frame size" );
   } else {
-    #ifdef _BARCODE_WRITE_DEBUG
-    cerr << "Found " << frame_count << " frames of size " << width << "x" << height << ".\n";
-    #endif
+    cerr << "# Writing barcodes to the file: " << argv[ 1 ] <<  ".\n";    
+    cerr << "# Found " << frame_count << " frames of size " << width << "x" << height << ".\n";
+
+    std::time_t result = std::time(nullptr);
+    cerr << "# Time stamp: " << std::asctime(std::localtime(&result));    
   }
+
+  /* print csv header */
+  cerr << "frame_num" << "," << "barcode" << "\n";
 
   FileDescriptor stdout { STDOUT_FILENO };
 

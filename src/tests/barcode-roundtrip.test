@@ -1,27 +1,74 @@
-#!/bin/bash
+#!/usr/bin/env python
 
-../barcoder/barcode-write captain-eo-test-vectors/john.truncated.raw 1280 720 1> barcoded.john.truncated.raw 2> barcodes-written.log
-../barcoder/barcode-read barcoded.john.truncated.raw 1280 720 2> barcodes-read.log
+import subprocess
+import os
+import re
 
+BARCODE_WRITE_BIN = '../barcoder/barcode-write'
+BARCODE_READ_BIN = '../barcoder/barcode-read'
+
+VIDEO_WIDTH = '1280'
+VIDEO_HEIGTH = '720'
+
+VIDEO_RAW_FILENAME = 'captain-eo-test-vectors/john.truncated.raw'
+BARCODE_VIDEO_RAW_FILENAME = 'barcoded.john.truncated.raw'
+BARCODE_WRITE_LOG_FILENAME = 'barcodes-written.log'
+BARCODE_READ_LOG_FILENAME = 'barcodes-read.log'
+BARCODE_READ_STDOUT_LOG_FILENAME = 'barcodes-read.stdoutlog'
+
+with open(BARCODE_VIDEO_RAW_FILENAME, 'w') as barcoded_video:
+    with open(BARCODE_WRITE_LOG_FILENAME, 'w') as write_log_file:
+
+        barcode_write = subprocess.Popen([BARCODE_WRITE_BIN, VIDEO_RAW_FILENAME, VIDEO_WIDTH, VIDEO_HEIGTH], 
+                                         stdout=barcoded_video, stderr=write_log_file)
+        barcode_write.communicate()
+        assert( barcode_write.returncode == 0 )
+            
+with open(BARCODE_READ_LOG_FILENAME, 'w') as read_log_file:
+    with open(BARCODE_READ_STDOUT_LOG_FILENAME, 'w') as stdout_log:
+    
+        barcode_read = subprocess.Popen([BARCODE_READ_BIN, BARCODE_VIDEO_RAW_FILENAME, VIDEO_WIDTH, VIDEO_HEIGTH], 
+                                        stdout=stdout_log, stderr=read_log_file)
+        
+        barcode_read.communicate()
+        assert( barcode_read.returncode == 0 )
+        
+# make sure there was not any output to STDOUT for the reader
+assert( os.path.getsize(BARCODE_READ_STDOUT_LOG_FILENAME) == 0 )
+
+def parse_lines_from_log_file(filename):
+    lines = None
+
+    with open(filename, 'r') as log_file:
+        lines = log_file.read().split('\n')
+        
+        # remove comment lines
+        lines = filter(lambda line: re.match('^\s*#.*', line) is None, lines)
+
+        # remove blank lines
+        lines = filter(lambda line: re.match('^\s*$', line) is None, lines)
+    
+    return lines
+
+read_lines = parse_lines_from_log_file(BARCODE_READ_LOG_FILENAME)
+    
+# check to make sure headers are correct
+assert( read_lines[0] == 'frame_num,upper_left_barcode,lower_right_barcode' )
+    
 # check to make sure upper left and lower right barcodes match
-for line in $(cat barcodes-read.log); do
-    UL=$(echo $line | awk '{split($0,a,","); print a[1]}')
-    LR=$(echo $line | awk '{split($0,a,","); print a[2]}')
+for line in read_lines[1:]:
+    row = line.split(',')
+    assert( row[1] == row[2] )
 
-    if [[ $UL != $LR ]]; then
-        echo "UL and LR barcodes do not match when barcodes are read"
-        exit -1;
-    fi
-done
+write_lines = parse_lines_from_log_file(BARCODE_WRITE_LOG_FILENAME)
+
+# check to make sure the number of frames written is the same as the number of frames read
+assert( len(read_lines) == len(write_lines) )
 
 # check to make sure the barcodes read match the ones that were written
-paste barcodes-written.log barcodes-read.log | while IFS="$(printf '\t')" read -r f1 f2
-do
-    written=$(echo $f1 | awk '{split($0,a,","); print a[2]}')
-    read=$(echo $f2 | awk '{split($0,a,","); print a[2]}')
+for read_line, write_line in zip(read_lines[1:], write_lines[1:]):
+    read_row = read_line.split(',') 
+    write_row = write_line.split(',')
 
-    if [[ $UL != $LR ]]; then
-        echo "barcode written does not match the barcode read"
-        exit -1;
-    fi
-done
+    assert( read_row[1] == write_row[1] )
+    assert( read_row[2] == write_row[1] )
