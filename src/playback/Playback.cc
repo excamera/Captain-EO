@@ -215,7 +215,6 @@ bool Playback::Run()
     if (m_logfile.is_open()) {
         std::time_t result = std::time(nullptr);
         
-        
         m_logfile << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result))
                   << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy"
