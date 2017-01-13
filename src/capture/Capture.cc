@@ -38,8 +38,8 @@
 #include <iostream>
 
 #include "DeckLinkAPI.h"
-#include "Capture.h"
-#include "Config.h"
+#include "Capture.hh"
+#include "Config.hh"
 #include "display.hh"
 #include "chunk.hh"
 #include "../barcoder/barcode.hh"

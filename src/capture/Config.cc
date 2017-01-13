@@ -30,7 +30,7 @@
 #include <cstring>
 #include <pthread.h>
 #include <unistd.h>
-#include "Config.h"
+#include "Config.hh"
 
 BMDConfig::BMDConfig() :
     m_deckLinkIndex(0),
