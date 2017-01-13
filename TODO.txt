@@ -3,13 +3,14 @@
 [X] fix run_analysis.py -- random error while running...
 [X] fix integer overflow in barcode-read
 [X] update playback to get blackmagic timestamp
-[ ] update capture to get blackmagic timestamp
+[X] update capture to get blackmagic timestamp
 [X] add informative headers on playback logs
 [X] add informative headers on capture logs
 [X] write scripts for running capture and play
-[ ] remove all default for command line args in capture and playback
+[ ] remove all default inputs for command line args in capture and playback
 [-] collect video for experiments
 [ ] testing suite scripts to automate getting results
+[ ] make playback write black frames to the beginning before and after test video is played
 
 # lesser concerns
 [ ] refactor decklink code into common wrapper class
