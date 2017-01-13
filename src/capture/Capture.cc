@@ -115,18 +115,37 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
                 g_frameCount,
                 "Valid Frame",
                 framesize);
+
+            unsigned long m_framesPerSecond = 60;
+            BMDTimeValue decklink_hardware_timestamp;
+            BMDTimeValue decklink_time_in_frame;
+            BMDTimeValue decklink_ticks_per_frame;
+            HRESULT ret;
+            ret = g_deckLinkInput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
+                                                             &decklink_hardware_timestamp,
+                                                             &decklink_time_in_frame,
+                                                             &decklink_ticks_per_frame);
             
+            std::cerr << decklink_hardware_timestamp << " " << decklink_time_in_frame << " " << decklink_ticks_per_frame  << "\n";
+            
+            if (ret != S_OK) {
+                std::cerr << "Error: failed to get the hardware timestamp" << std::endl;
+                return E_FAIL;
+            }
+
             if (barcodes.first != 0xFFFFFFFFFFFFFFFF 
                 || barcodes.second != 0xFFFFFFFFFFFFFFFF) {
                 if (logfile.is_open())
                     logfile << g_validFrameCount << "," 
                             << barcodes.first << "," << barcodes.second << ","
-                            << time_point_cast<microseconds>(tp).time_since_epoch().count() 
+                            << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
+                            << decklink_hardware_timestamp
                             << std::endl;
                 else
                     std::cout   << g_validFrameCount << "," 
                                 << barcodes.first << "," << barcodes.second << ","
-                                << time_point_cast<microseconds>(tp).time_since_epoch().count() 
+                                << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
+                                << decklink_hardware_timestamp
                                 << std::endl;
                 g_validFrameCount++;
 
@@ -386,8 +405,7 @@ int main(int argc, char *argv[])
             
             logfile << "# Reading from decklink interface to the video file: " << g_config.m_videoOutputFile << std::endl
                     << "# Time stamp: " << std::asctime(std::localtime(&time))
-                    << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp"
-                /* TODO: update logging code so extra headers will be valid << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy" */
+                    << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp"
                     << std::endl;
         }
     }

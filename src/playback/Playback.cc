@@ -42,6 +42,7 @@
 #include <fstream>
 #include <chrono>
 #include <ctime>
+#include <cassert>
 
 #include "Playback.hh"
 #include "display.hh"
@@ -286,6 +287,9 @@ void Playback::StartRunning()
 
     // Calculate the number of frames per second, rounded up to the nearest integer.  For example, for NTSC (29.97 FPS), framesPerSecond == 30.
     m_framesPerSecond = (unsigned long)((m_frameTimescale + (m_frameDuration-1))  /  m_frameDuration);
+    assert(m_framesPerSecond == 60);
+    m_framesPerSecond = 60;
+    std::cout << "m_framesPerSecond: "  << m_framesPerSecond << std::endl;
 
     // Set the video output mode
     result = m_deckLinkOutput->EnableVideoOutput(m_displayMode->GetDisplayMode(), m_config->m_outputFlags);
