@@ -50,7 +50,7 @@ class PlaybackLogReader(LogReader):
                 raise VideoBarcodeException
             if idx != barcodeLog[ul]:
                 raise VideoFrameException
-            self.records[ul] = time
+            self.records[ul] = time, idx
 
 class CaptureLogReader(LogReader):
     
@@ -97,47 +97,64 @@ def main(args):
     playbackFrames = []
     results = []
     for frameno in sorted(playbackLogs.records.keys(), cmp=lambda x, y: cmp(barcodeLog[x], barcodeLog[y])):
-        print barcodeLog[frameno]
         if captureLogs.records.get(frameno) is not None:
-            results.append((barcodeLog[frameno], 
-                            playbackLogs.records[frameno],
-                            captureLogs.records[frameno][0],
-                            "FULL", captureLogs.records[frameno][1]))
+            results.append((
+                barcodeLog[frameno],              # Frame index in video passed to playback
+                playbackLogs.records[frameno][0], # CPU time (us) frame was played
+                captureLogs.records[frameno][0],  # CPU time (us) frame was captured
+                "FULL",                           # Frame captured with UL == RL
+                frameno                           # Barcode number
+            ))
+
             captureFrames.append((captureLogs.records[frameno][1], frameno))
-            playbackFrames.append((barcodeLog[frameno], frameno))
+            playbackFrames.append((playbackLogs.records[frameno][1], frameno))
+
         elif captureLogs.ulTimes.get(frameno) is not None:
-            results.append((barcodeLog[frameno], playbackLogs.records[frameno],
-                           captureLogs.ulTimes[frameno][0],
-                           "UL", captureLogs.ulTimes[frameno][1]))
+            results.append((
+                barcodeLog[frameno],              # Frame index in video passed to playback
+                playbackLogs.records[frameno][0], # CPU time (us) frame was played
+                captureLogs.ulTimes[frameno][0],  # CPU time (us) frame was captured
+                "UL",                             # Frame barcode only appears in UL
+                frameno                           # Barcode number
+            ))
         elif captureLogs.lrTimes.get(frameno) is not None:
-            results.append((barcodeLog[frameno], playbackLogs.records[frameno],
-                           captureLogs.lrTimes[frameno][0],
-                           "RL", captureLogs.lrTimes[frameno][1]))
+            results.append((
+                barcodeLog[frameno],              # Frame index in video passed to playback
+                playbackLogs.records[frameno][0], # CPU time (us) frame was played
+                captureLogs.lrTimes[frameno][0],  # CPU time (us) frame was captured
+                "LR",                             # Frame barcode only appears in LR
+                frameno                           # Barcode number
+            ))
         else:
-            results.append((barcodeLog[frameno], playbackLogs.records[frameno], None, "DROPPED", None))
+            results.append((
+                barcodeLog[frameno],              # Frame index in video passed to playback
+                playbackLogs.records[frameno][0], # CPU time (us) frame was played
+                None, 
+                "DROPPED",                        # Frame was not captured
+                None
+            ))
 
-    captureConverter = RGB2Y4M(args.in_video, captureFrames, os.getcwd() + "/" + "capture-frames", args.width, args.height)
-    captureConverter.convert()
-
-    playbackConverter = RGB2Y4M(args.out_video, playbackFrames, os.getcwd() + "/" + "playback-frames", args.width, args.height)
-    playbackConverter.convert()
-    
- 
-    with open(os.devnull, 'w') as devnull:
-        for frameidx, frameno in playbackFrames:
-            ssim_output = subprocess.check_output(["%s/../../third_party/daala_tools/daala/dump_ssim" %os.getcwd(), 
-                                                   "-r", "%s/playback-frames/%d.y4m" %(os.getcwd(), frameno),
-                                                   "%s/capture-frames/%d.y4m" %(os.getcwd(), frameno)], stderr=devnull)
-            args.output.write("Frame %d SSIM output: [%s]\n" %(barcodeLog[frameno], ssim_output.split("\n")[1]))
-    
-    shutil.rmtree(os.getcwd() + "/" + "capture-frames")
-    shutil.rmtree(os.getcwd() + "/" + "playback-frames")
     for frameLog in results:
         args.output.write("Frame %d (%d): " %(frameLog[0], frameLog[1]))
         args.output.write("%s%s\n" %(frameLog[3], 
                                      " %d (%d), %fms" %(frameLog[4], frameLog[2], (frameLog[2] - frameLog[1])/1000.0)
                                         if frameLog[3] != "DROPPED" else ""))
+
+    captureConverter = RGB2Y4M(args.in_video, captureFrames, os.getcwd() + "/" + "capture-frames", "capture", args.width, args.height)
+    captureConverter.convert()
+
+    playbackConverter = RGB2Y4M(args.out_video, playbackFrames, os.getcwd() + "/" + "playback-frames", "playback", args.width, args.height)
+    playbackConverter.convert()
+ 
+    with open(os.devnull, 'w') as devnull:
+        #for frameidx, frameno in playbackFrames:
+        subprocess.check_call(["%s/../../third_party/daala_tools/daala/dump_ssim" %os.getcwd(), 
+                                                   "-r", "%s/playback-frames/playback.y4m" %(os.getcwd()),
+                                                   "%s/capture-frames/capture.y4m" %(os.getcwd())])
     
+    shutil.rmtree(os.getcwd() + "/" + "capture-frames")
+    shutil.rmtree(os.getcwd() + "/" + "playback-frames")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
