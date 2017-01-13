@@ -79,6 +79,7 @@ def ingestBarcodeLog(log):
 
     logFileLines = parse_lines_from_log_file(log)
     logFileLines = logFileLines[1:] # remove csv headers
+
     for line in logFileLines:
         idx, barcode = [int(item) for item in line.split(',')]
         barcodeLog[barcode] = idx
