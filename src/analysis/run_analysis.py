@@ -45,12 +45,12 @@ class PlaybackLogReader(LogReader):
         logFileLines = logFileLines[1:] # remove csv headers
 
         for line in logFileLines:
-            idx, ul, lr, time = [int(item) for item in line.split(',')]
+            idx, ul, lr, cpu_time, decklink_time, queue_occupancy = [int(item) for item in line.split(',')]
             if ul != lr:
                 raise VideoBarcodeException
             if idx != barcodeLog[ul]:
                 raise VideoFrameException
-            self.records[ul] = time, idx
+            self.records[ul] = cpu_time, idx
 
 class CaptureLogReader(LogReader):
     
@@ -64,7 +64,7 @@ class CaptureLogReader(LogReader):
         logFileLines = logFileLines[1:] # remove csv headers
 
         for line in logFileLines:
-            idx, ul, lr, time = [int(item) for item in line.split(',')]
+            idx, ul, lr, time, = [int(item) for item in line.split(',')]
             if ul == lr:
                 if self.records.get(ul) is None:
                     self.records[ul] = time, idx
