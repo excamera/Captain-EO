@@ -33,11 +33,11 @@ int main( int argc, char *argv[] )
 
   /* open file and check for sane length */
   File input { argv[ 1 ] };
-  const unsigned int width = paranoid_atoi( argv[ 2 ] );
-  const unsigned int height = paranoid_atoi( argv[ 3 ] );
-  const unsigned int frame_length = width * height * sizeof( RGBPixel );
+  const uint32_t width = paranoid_atoi( argv[ 2 ] );
+  const uint32_t height = paranoid_atoi( argv[ 3 ] );
+  const uint64_t frame_length = width * height * sizeof( RGBPixel );
 
-  const unsigned int frame_count = input.size() / frame_length;
+  const uint64_t frame_count = input.size() / frame_length;
   if ( input.size() != frame_count * frame_length ) {
     throw runtime_error( "file size is not multiple of frame size" );
   } else {
