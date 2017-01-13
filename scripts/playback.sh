@@ -18,10 +18,15 @@ if [[ ! -f $PLAYBACK_BINARY ]]; then
     exit -1
 fi
 
-# create input files if they don't exist already and get full path to them
-touch $1
+# check to make sure input file exists
+if [[ ! -f $1 ]]; then
+    echo "Error: $1 does not exist."
+    echo 
+    exit -1
+fi
 INPUT_VIDEO_FILEPATH=$(readlink -e $1)
 
+# create output file if ot doesn't exist already and get full path to it
 touch $2
 OUTPUT_LOG_FILEPATH=$(readlink -e $2)
 

@@ -5,8 +5,8 @@ SCRIPT_DIRPATH=$(dirname $SCRIPT_FILEPATH)
 CAPTURE_BINARY=$SCRIPT_DIRPATH/../src/capture/capture
 
 # check params
-if [[ -z $1 ]]; then
-    echo "Usage: $0 OUTPUT_VIDEO"
+if [[ -z $1 || -z $2 ]]; then
+    echo "Usage: $0 OUTPUT_VIDEO OUTPUT_LOGFILE"
     echo
     exit -1
 fi
@@ -18,8 +18,11 @@ if [[ ! -f $CAPTURE_BINARY ]]; then
     exit -1
 fi
 
-# create output file if it does exist already and get full path to it
+# create output files if they don't exist already and get full path to them
 touch $1
-OUTPUT_FILEPATH=$(readlink -e $1)
+OUTPUT_VIDEO_FILEPATH=$(readlink -e $1)
 
-$CAPTURE_BINARY -d 0 -m 15 -p 3 -v $OUTPUT_FILEPATH
+touch $2
+OUTPUT_LOG_FILEPATH=$(readlink -e $2)
+
+$CAPTURE_BINARY -d 0 -m 15 -p 3 -v $OUTPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH

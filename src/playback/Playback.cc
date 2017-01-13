@@ -217,8 +217,8 @@ bool Playback::Run()
         
         
         m_logfile << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
-                  << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl
-                   << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy"
+                  << "# Time stamp: " << std::asctime(std::localtime(&result))
+                  << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy"
                   << std::endl;
     }
     else {
