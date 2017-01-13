@@ -1,12 +1,12 @@
 # most important concerns
 [ ] Investigate: Playback seems to freeze and drop frames near end of the sadjad video, when measurement machine is also the sender. 
 [X] fix run_analysis.py -- random error while running...
-[ ] fix integer overflow in barcode-read
+[X] fix integer overflow in barcode-read
 [X] update playback to get blackmagic timestamp
 [ ] update capture to get blackmagic timestamp
 [X] add informative headers on playback logs
 [ ] add informative headers on capture logs
-[x] write scripts for running capture and play
+[X] write scripts for running capture and play
 [ ] remove all default for command line args in capture and playback
 [ ] write benchmarking scripts for running experiments
 [ ] collect video for experiments
