@@ -34,6 +34,7 @@
 #include <csignal>
 #include <fstream>
 #include <chrono>
+#include <ctime>
 #include <iostream>
 
 #include "DeckLinkAPI.h"
@@ -115,19 +116,16 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
                 "Valid Frame",
                 framesize);
             
-
-
-
             if (barcodes.first != 0xFFFFFFFFFFFFFFFF 
                 || barcodes.second != 0xFFFFFFFFFFFFFFFF) {
                 if (logfile.is_open())
-                    logfile << g_validFrameCount << " " 
-                            << barcodes.first << " " << barcodes.second << " "
+                    logfile << g_validFrameCount << "," 
+                            << barcodes.first << "," << barcodes.second << ","
                             << time_point_cast<microseconds>(tp).time_since_epoch().count() 
                             << std::endl;
                 else
-                    std::cout   << g_validFrameCount << " " 
-                                << barcodes.first << " " << barcodes.second << " "
+                    std::cout   << g_validFrameCount << "," 
+                                << barcodes.first << "," << barcodes.second << ","
                                 << time_point_cast<microseconds>(tp).time_since_epoch().count() 
                                 << std::endl;
                 g_validFrameCount++;
@@ -381,6 +379,16 @@ int main(int argc, char *argv[])
         if (!logfile.is_open()) {
             fprintf(stderr, "Error opening logfile.\n");
             goto bail;
+        }
+        else {
+            /* write header to csv log file */ 
+            std::time_t time = std::time(nullptr);
+            
+            logfile << "# Reading from decklink interface to the video file: " << g_config.m_videoOutputFile << std::endl
+                    << "# Time stamp: " << std::asctime(std::localtime(&time))
+                    << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp"
+                /* TODO: update logging code so extra headers will be valid << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy" */
+                    << std::endl;
         }
     }
 
