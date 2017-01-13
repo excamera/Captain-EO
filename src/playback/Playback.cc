@@ -41,6 +41,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <ctime>
 
 #include "Playback.hh"
 #include "display.hh"
@@ -211,17 +212,23 @@ bool Playback::Run()
             goto bail;
         } 
     }
-    if (m_logfile.is_open()) 
-        m_logfile << "# Playing " << m_config->m_videoInputFile << std::endl
-                  << "# Log format:" << std::endl
-                  << "# Frame-Index UL-Barcode LR-Barcode CPU-Timestamp DeckLink-Timestamp Queue-Occupancy"
+    if (m_logfile.is_open()) {
+        std::time_t result = std::time(nullptr);
+        
+        
+        m_logfile << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
+                  << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl
+                   << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy"
                   << std::endl;
-    else
-        std::cout << "# Playing " << m_config->m_videoInputFile << std::endl
-                  << "# Log format:" << std::endl
-                  << "# Frame-Index UL-Barcode LR-Barcode CPU-Timestamp DeckLink-Timestamp Queue-Occupancy"
+    }
+    else {
+        std::time_t result = std::time(nullptr);
+
+        std::cout << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
+                  << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl
+                   << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy"
                   << std::endl;
-    
+    }
     m_config->DisplayConfiguration();
 
     // Provide this class as a delegate to the audio and video output interfaces
@@ -465,17 +472,17 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
             auto barcodes = Barcode::readBarcodes(img);
 
             if (m_logfile.is_open())
-                m_logfile   << m_totalFramesCompleted << " " 
-                            << barcodes.first << " " << barcodes.second << " "
-                            << time_point_cast<microseconds>(tp).time_since_epoch().count() << " "
-                            << decklink_timestamp << " "
+                m_logfile   << m_totalFramesCompleted << "," 
+                            << barcodes.first << "," << barcodes.second << ","
+                            << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
+                            << decklink_timestamp << ","
                             << queue_len
                             << std::endl;
             else 
-                std::cout   << m_totalFramesCompleted << " " 
-                            << barcodes.first << " " << barcodes.second << " "
-                            << time_point_cast<microseconds>(tp).time_since_epoch().count() << " "
-                            << decklink_timestamp << " "
+                std::cout   << m_totalFramesCompleted << "," 
+                            << barcodes.first << "," << barcodes.second << ","
+                            << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
+                            << decklink_timestamp << ","
                             << queue_len
                             << std::endl;
             std::cout << "Frame #" << m_totalFramesCompleted << " on time." << std::endl;
