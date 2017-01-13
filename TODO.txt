@@ -1,0 +1,15 @@
+# most important concerns
+[ ] fix run_analysis.py -- random error while running...
+[ ] fix integer overflow in barcode-read
+[ ] update playback and capture to get blackmagic timestamp
+[ ] add informative headers on playback and capture logs
+[ ] write scripts for running capture and play
+[ ] remove all default for command line args in capture and playback
+[ ] write benchmarking scripts for running experiments
+[ ] collect video for experiments
+[ ] testing suite scripts to automate getting results
+
+# lesser concerns
+[ ] refactor decklink code into common wrapper class
+[ ] write ghost decklink wrapper for testing in travis
+[ ] integration test for capture and playback?
