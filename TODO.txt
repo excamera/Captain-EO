@@ -6,7 +6,7 @@
 [ ] update capture to get blackmagic timestamp
 [X] add informative headers on playback logs
 [ ] add informative headers on capture logs
-[ ] write scripts for running capture and play
+[x] write scripts for running capture and play
 [ ] remove all default for command line args in capture and playback
 [ ] write benchmarking scripts for running experiments
 [ ] collect video for experiments
