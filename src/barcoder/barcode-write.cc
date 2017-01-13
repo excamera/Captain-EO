@@ -37,7 +37,7 @@ int main( int argc, char *argv[] )
   const uint32_t height = paranoid_atoi( argv[ 3 ] );
   const uint64_t frame_length = width * height * sizeof( RGBPixel );
 
-  const uint64_t frame_count = input.size() / frame_length;
+  const unsigned int frame_count = input.size() / (uint64_t)frame_length;
   if ( input.size() != frame_count * frame_length ) {
     throw runtime_error( "file size is not multiple of frame size" );
   } else {
