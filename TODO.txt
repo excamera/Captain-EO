@@ -5,11 +5,10 @@
 [X] update playback to get blackmagic timestamp
 [ ] update capture to get blackmagic timestamp
 [X] add informative headers on playback logs
-[ ] add informative headers on capture logs
+[X] add informative headers on capture logs
 [X] write scripts for running capture and play
 [ ] remove all default for command line args in capture and playback
-[ ] write benchmarking scripts for running experiments
-[ ] collect video for experiments
+[-] collect video for experiments
 [ ] testing suite scripts to automate getting results
 
 # lesser concerns
