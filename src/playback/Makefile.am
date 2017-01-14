@@ -3,5 +3,5 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS)
 
 bin_PROGRAMS = playback
 playback_SOURCES = Playback.cc Playback.hh Config.h Config.cpp ../barcoder/barcode.hh ../barcoder/barcode.cc 
-playback_LDADD = ../../third_party/decklink/libdecklink.a -ldl -lm ../display/libdisplay.a ../scanner/libscanner.a $(XCBPRESENT_LIBS) $(XCB_LIBS) $(PANGOCAIRO_LIBS)
+playback_LDADD = ../../third_party/decklink/libdecklink.a -ldl -lm ../display/libdisplay.a ../scanner/libscanner.a ../util/libutil.a $(XCBPRESENT_LIBS) $(XCB_LIBS) $(PANGOCAIRO_LIBS)
 playback_LDFLAGS = -pthread
