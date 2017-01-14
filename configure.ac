@@ -32,12 +32,13 @@ AC_CONFIG_FILES([Makefile
          third_party/decklink/Makefile
          third_party/daala_tools/Makefile
          src/Makefile
-	 src/util/Makefile
+         src/util/Makefile
          src/display/Makefile
          src/playback/Makefile
          src/rgb-example/Makefile
          src/capture/Makefile
          src/barcoder/Makefile
+         src/decklink/Makefile
          src/scanner/Makefile
 	 src/tests/Makefile
 	 ])
