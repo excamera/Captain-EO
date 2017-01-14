@@ -41,8 +41,7 @@ BMDConfig::BMDConfig() :
     m_logFilename(),
     m_deckLinkName(),
     m_displayModeName()
-{
-}
+{}
 
 BMDConfig::~BMDConfig()
 {

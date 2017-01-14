@@ -89,7 +89,6 @@ int main(int argc, char *argv[])
         goto bail;
     }
 
-
     generator = new Playback(&config);
 
     if (!generator->Run())
@@ -127,7 +126,8 @@ Playback::Playback(BMDConfig *config) :
     m_totalFramesDropped(0),
     m_totalFramesCompleted(0),
     m_logfile(),
-    m_infile()
+    m_infile(m_config->m_videoInputFile)
+    //, m_infile() // TODO: remove 
 {}
 
 bool Playback::Run()
@@ -200,7 +200,7 @@ bool Playback::Run()
     }
 
     if (m_config->m_videoInputFile != NULL) {
-        m_infile.open(m_config->m_videoInputFile, std::ios::in|std::ios::binary);
+        //m_infile.open(m_config->m_videoInputFile, std::ios::in|std::ios::binary); // TODO: remove
     } else {
         fprintf(stderr, "-v <video filename> flag required\n");
         exit(1);
@@ -347,16 +347,22 @@ void Playback::ScheduleNextFrame(bool prerolling)
     }
 
     newFrame->GetBytes(&frameBytes);
-    m_infile.read((char*)frameBytes, m_frameWidth * bytesPerPixel * m_frameHeight);
-    if (m_infile) {
+
+    const unsigned int frame_size = 4 * m_frameWidth * m_frameHeight;
+    const unsigned int frame_count = m_infile.size() / (uint64_t)frame_size;
+    
+    if ( m_totalFramesScheduled < frame_count ) {
+        Chunk c = m_infile(m_totalFramesScheduled * frame_size, frame_size);
+
+        std::memcpy(frameBytes, c.buffer(), c.size());
         if (m_deckLinkOutput->ScheduleVideoFrame(newFrame, (m_totalFramesScheduled * m_frameDuration), m_frameDuration, m_frameTimescale) != S_OK)
             return;
-
+        
         m_totalFramesScheduled += 1;
-    } else 
+    }
+    else {
         m_running = false;
-
-
+    }
 }
 
 HRESULT Playback::CreateFrame(IDeckLinkVideoFrame** frame, void (*fillFunc)(IDeckLinkVideoFrame*))

@@ -30,6 +30,7 @@
 
 #include "DeckLinkAPI.h"
 #include "Config.h"
+#include "file.hh"
 #include <fstream>
 
 class Playback : public IDeckLinkVideoOutputCallback {
@@ -51,7 +52,8 @@ private:
     unsigned long           m_totalFramesCompleted;
 
     std::ofstream           m_logfile;
-    std::ifstream           m_infile;
+    // std::ifstream           m_infile; // TODO: remove this extraneous line
+    File                    m_infile;
     ~Playback();
 
     // Signal Generator Implementation
