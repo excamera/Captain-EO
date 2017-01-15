@@ -38,6 +38,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <sys/mman.h>
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -89,7 +90,14 @@ int main(int argc, char *argv[])
         goto bail;
     }
 
+    if ( mlockall(MCL_CURRENT | MCL_FUTURE) != 0 ) {
+        std::cerr << "Failed to mlockall" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    std::cerr << "Loading file...";
     generator = new Playback(&config);
+    std::cerr << "done!";
 
     if (!generator->Run())
         goto bail;
