@@ -43,6 +43,7 @@
 #include <chrono>
 #include <ctime>
 #include <cassert>
+#include <list>
 
 #include "Playback.hh"
 #include "display.hh"
@@ -80,7 +81,6 @@ int main(int argc, char *argv[])
     signal(SIGINT, sigfunc);
     signal(SIGTERM, sigfunc);
     signal(SIGHUP, sigfunc);
-    // debugf.open("debug.raw", std::ios::out|std::ios::binary);
 
     BMDConfig config;
     if (!config.ParseArguments(argc, argv))
@@ -126,8 +126,9 @@ Playback::Playback(BMDConfig *config) :
     m_totalFramesDropped(0),
     m_totalFramesCompleted(0),
     m_logfile(),
-    m_infile(m_config->m_videoInputFile)
-    //, m_infile() // TODO: remove 
+    m_infile(m_config->m_videoInputFile),
+    scheduled_timestamp_cpu(),
+    scheduled_timestamp_decklink()
 {}
 
 bool Playback::Run()
@@ -199,9 +200,7 @@ bool Playback::Run()
         snprintf(displayModeName, 32, "[index %d]", m_config->m_displayModeIndex);
     }
 
-    if (m_config->m_videoInputFile != NULL) {
-        //m_infile.open(m_config->m_videoInputFile, std::ios::in|std::ios::binary); // TODO: remove
-    } else {
+    if (m_config->m_videoInputFile == NULL) {
         fprintf(stderr, "-v <video filename> flag required\n");
         exit(1);
     }
@@ -213,27 +212,29 @@ bool Playback::Run()
             goto bail;
         } 
     }
+
+    /* IMPORTANT: print log file csv headers */
     if (m_logfile.is_open()) {
         std::time_t result = std::time(nullptr);
         
         m_logfile << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result))
-                  << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy"
+                  << "frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
                   << std::endl;
     }
     else {
         std::time_t result = std::time(nullptr);
 
         std::cout << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
-                  << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl
-                   << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp,Queue-Occupancy"
+                  << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl 
+                  << "frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
                   << std::endl;
     }
+
     m_config->DisplayConfiguration();
 
     // Provide this class as a delegate to the audio and video output interfaces
     m_deckLinkOutput->SetScheduledFrameCompletionCallback(this);
-    //m_deckLinkOutput->SetAudioCallback(this);
 
     success = true;
 
@@ -358,6 +359,27 @@ void Playback::ScheduleNextFrame(bool prerolling)
         if (m_deckLinkOutput->ScheduleVideoFrame(newFrame, (m_totalFramesScheduled * m_frameDuration), m_frameDuration, m_frameTimescale) != S_OK)
             return;
         
+        /* IMPORTANT: get the scheduled frame timestamps */
+        time_point<high_resolution_clock> tp = high_resolution_clock::now();
+
+        unsigned long m_framesPerSecond = 60;
+        BMDTimeValue decklink_hardware_timestamp;
+        BMDTimeValue decklink_time_in_frame;
+        BMDTimeValue decklink_ticks_per_frame;
+        HRESULT ret;
+        if ( (ret = m_deckLinkOutput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
+                                                                &decklink_hardware_timestamp,
+                                                                &decklink_time_in_frame,
+                                                                &decklink_ticks_per_frame) ) != S_OK) {
+            std::cerr << "ScheduleNextFrame: could not get GetHardwareReferenceClock timestamp" << std::endl;
+            m_running = false;
+            return;
+        }
+
+        /* IMPORTANT: store the scheduled fram timestamps */
+        scheduled_timestamp_cpu.push_back(tp);
+        scheduled_timestamp_decklink.push_back(decklink_hardware_timestamp);
+
         m_totalFramesScheduled += 1;
     }
     else {
@@ -462,13 +484,33 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         completedFrame->Release();
         return S_OK;
     }
+    
+    /* IMPORTANT: get the time stamps for when a frame is completed*/
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
-    BMDTimeValue decklink_timestamp;
-    uint32_t queue_len = 0;
-    HRESULT ret = m_deckLinkOutput->GetFrameCompletionReferenceTimestamp(completedFrame, 
-                                                                         (BMDTimeScale)m_framesPerSecond * 1000, 
-                                                                         &decklink_timestamp);
-    ret = m_deckLinkOutput->GetBufferedVideoFrameCount(&queue_len);
+
+    unsigned long m_framesPerSecond = 60;
+    BMDTimeValue decklink_hardware_timestamp;
+    BMDTimeValue decklink_time_in_frame;
+    BMDTimeValue decklink_ticks_per_frame;
+    HRESULT ret;
+    if ( (ret = m_deckLinkOutput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
+                                                            &decklink_hardware_timestamp,
+                                                            &decklink_time_in_frame,
+                                                            &decklink_ticks_per_frame) ) != S_OK) {
+        std::cerr << "ScheduledFrameCompleted: could not get GetHardwareReferenceClock timestamp" << std::endl;
+        return ret;
+    }
+
+    
+    
+    BMDTimeValue decklink_frame_completed_timestamp;
+    if( (ret = m_deckLinkOutput->GetFrameCompletionReferenceTimestamp(completedFrame, 
+                                                                      (BMDTimeScale)m_framesPerSecond * 1000, 
+                                                                      &decklink_frame_completed_timestamp) ) != S_OK ) {
+        
+        std::cerr << "ScheduledFrameCompleted: could not get FrameCompletionReference timestamp" << std::endl;
+        return ret;
+    }
 
     void *frameBytes = NULL;
     completedFrame->GetBytes(&frameBytes);
@@ -480,20 +522,34 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
             XImage img(chunk, completedFrame->GetWidth(), completedFrame->GetHeight());
             auto barcodes = Barcode::readBarcodes(img);
 
-            if (m_logfile.is_open())
+            /* IMPORTANT: print as much of the csv log file as possible */
+            if (m_logfile.is_open()) {
                 m_logfile   << m_totalFramesCompleted << "," 
                             << barcodes.first << "," << barcodes.second << ","
+                            << time_point_cast<microseconds>(scheduled_timestamp_cpu.front()).time_since_epoch().count() << ","
                             << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
-                            << decklink_timestamp << ","
-                            << queue_len
+                            << scheduled_timestamp_decklink.front()  << ","
+                            << decklink_hardware_timestamp << ","
+                            << decklink_frame_completed_timestamp
                             << std::endl;
-            else 
+
+                scheduled_timestamp_cpu.pop_front();
+                scheduled_timestamp_decklink.pop_front();
+            }
+            else { 
                 std::cout   << m_totalFramesCompleted << "," 
                             << barcodes.first << "," << barcodes.second << ","
+                            << time_point_cast<microseconds>(scheduled_timestamp_cpu.front()).time_since_epoch().count() << ","
                             << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
-                            << decklink_timestamp << ","
-                            << queue_len
+                            << scheduled_timestamp_decklink.front()  << ","
+                            << decklink_hardware_timestamp << ","
+                            << decklink_frame_completed_timestamp
                             << std::endl;
+
+                scheduled_timestamp_cpu.pop_front();
+                scheduled_timestamp_decklink.pop_front();
+            }
+
             std::cout << "Frame #" << m_totalFramesCompleted << " on time." << std::endl;
             break;
         }
@@ -513,21 +569,9 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
     }
     completedFrame->Release();
     ++m_totalFramesCompleted;
-    // debugf.write((char*)frameBytes, m_frameWidth * GetBytesPerPixel(m_config->m_pixelFormat) * m_frameHeight);
+    
+    ScheduleNextFrame(false);
 
-
-    ret = m_deckLinkOutput->GetBufferedVideoFrameCount(&queue_len);
-    if (ret != S_OK) {
-        ScheduleNextFrame(false);
-        return ret;
-    }
-
-    //PrintStatusLine(queue_len);
-    // When a video frame has been released by the API, schedule another video frame to be output
-    while (!do_exit && queue_len < m_framesPerSecond) {
-        ScheduleNextFrame(false);
-        queue_len++;
-    }
     return S_OK;
 }
 

@@ -32,6 +32,13 @@
 #include "Config.h"
 #include "file.hh"
 #include <fstream>
+#include <list>
+#include <chrono>
+
+using std::chrono::time_point;
+using std::chrono::high_resolution_clock;
+using std::chrono::time_point_cast;
+using std::chrono::microseconds;
 
 class Playback : public IDeckLinkVideoOutputCallback {
 private:
@@ -52,8 +59,11 @@ private:
     unsigned long           m_totalFramesCompleted;
 
     std::ofstream           m_logfile;
-    // std::ifstream           m_infile; // TODO: remove this extraneous line
     File                    m_infile;
+    
+    std::list<time_point<high_resolution_clock>> scheduled_timestamp_cpu;
+    std::list<BMDTimeValue> scheduled_timestamp_decklink;
+    
     ~Playback();
 
     // Signal Generator Implementation
