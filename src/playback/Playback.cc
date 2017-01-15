@@ -485,7 +485,7 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         return S_OK;
     }
     
-    /* IMPORTANT: get the time stamps for when a frame is completed*/
+    /* IMPORTANT: get the time stamps for when a frame is completed */
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
     unsigned long m_framesPerSecond = 60;
@@ -522,7 +522,7 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
             XImage img(chunk, completedFrame->GetWidth(), completedFrame->GetHeight());
             auto barcodes = Barcode::readBarcodes(img);
 
-            /* IMPORTANT: print as much of the csv log file as possible */
+            /* IMPORTANT: print timestamps for fram was completed */
             if (m_logfile.is_open()) {
                 m_logfile   << m_totalFramesCompleted << "," 
                             << barcodes.first << "," << barcodes.second << ","
