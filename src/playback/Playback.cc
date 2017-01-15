@@ -90,10 +90,7 @@ int main(int argc, char *argv[])
         goto bail;
     }
 
-    if ( mlockall(MCL_CURRENT | MCL_FUTURE) != 0 ) {
-        std::cerr << "Failed to mlockall" << std::endl;
-        return EXIT_FAILURE;
-    }
+    SystemCall( "mlockall", mlockall( MCL_CURRENT | MCL_FUTURE ) );
 
     std::cerr << "Loading file...";
     generator = new Playback(&config);
