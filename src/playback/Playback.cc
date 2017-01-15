@@ -49,7 +49,7 @@
 #include "Playback.hh"
 #include "display.hh"
 #include "chunk.hh"
-#include "../barcoder/barcode.hh"
+#include "barcode.hh"
 
 using std::chrono::time_point;
 using std::chrono::high_resolution_clock;
