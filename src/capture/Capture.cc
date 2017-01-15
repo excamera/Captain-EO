@@ -88,7 +88,6 @@ void DeckLinkCaptureDelegate::preview(void*, int) {}
 HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame* videoFrame, IDeckLinkAudioInputPacket*)
 {
     void*                               frameBytes;
-    time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
     // Handle Video Frame
     if (videoFrame)
@@ -116,6 +115,9 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
                 "Valid Frame",
                 framesize);
 
+            /* IMPORTANT: get the frame arrived timestamp */
+            time_point<high_resolution_clock> tp = high_resolution_clock::now();
+
             unsigned long m_framesPerSecond = 60;
             BMDTimeValue decklink_hardware_timestamp;
             BMDTimeValue decklink_time_in_frame;
@@ -133,6 +135,7 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
                 return E_FAIL;
             }
 
+            /* IMPORTANT: log the timestamps  */
             if (barcodes.first != 0xFFFFFFFFFFFFFFFF 
                 || barcodes.second != 0xFFFFFFFFFFFFFFFF) {
                 if (logfile.is_open())
@@ -400,12 +403,11 @@ int main(int argc, char *argv[])
             goto bail;
         }
         else {
-            /* write header to csv log file */ 
+            /* IMPORTANT: write header to csv log file */
             std::time_t time = std::time(nullptr);
-            
             logfile << "# Reading from decklink interface to the video file: " << g_config.m_videoOutputFile << std::endl
                     << "# Time stamp: " << std::asctime(std::localtime(&time))
-                    << "Frame-Index,UL-Barcode,LR-Barcode,CPU-Timestamp,DeckLink-Timestamp"
+                    << "frame_index,upper_left_barcode,lower_right_barcode,cpu_timestamp,decklink_hardwaretimestamp"
                     << std::endl;
         }
     }
