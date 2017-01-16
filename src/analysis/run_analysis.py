@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python -u
 
 import os
 import re
@@ -132,8 +132,7 @@ for line in get_lines_from_log_file ( CAPTURE_LOG ):
     capture_log.append(c_entry)
     
 ################################################################################
-# scan through all the frames which were 'played' and try to find a matching 
-# 'captured' frame.
+# create a correspondence between the sent and recieved frames
 # NOTE: this assumes code assumes that all frames have a unique barcode. 
 ################################################################################
 results = []
@@ -158,25 +157,6 @@ assert( len(playback_log) == len(results) )
 print 'frames received:', len ( filter(lambda x: x[1] is not None, results) )
 print 'frames dropped:', len ( filter(lambda x: x[1] is None, results) )
 
-# ################################################################################
-# # get compute statistics for received frames
-# ################################################################################
-# delay_cpu_timestamp = []
-# average_delay_cpu_timestamp = 0
-
-# #delay_decklink_timestamp = []
-# #average_delay_decklink_timestamp = 0
-
-# for playback_frame, capture_frame in filter(lambda x: x[1] is not None, results):
-#     delay_cpu_timestamp.append ( capture_frame.cpu_timestamp - playback_frame.cpu_time_completed )
-#     average_delay_cpu_timestamp += capture_frame.cpu_timestamp - playback_frame.cpu_time_completed
-
-#     #delay_decklink_timestamp.append ( capture_frame.decklink_hardwaretimestamp - playback_frame.decklink_hardwaretime_completed_callback )
-#     #average_delay_decklink_timestamp += capture_frame.decklink_hardwaretimestamp - playback_frame.decklink_hardwaretime_completed_callback
-
-# average_delay_cpu_timestamp /= len ( filter(lambda x: x[1] is not None, results) )
-# #average_delay_decklink_timestamp /= len ( filter(lambda x: x[1] is not None, results) )
-
 ################################################################################
 # get ssims for the received frames
 ################################################################################
@@ -185,36 +165,37 @@ print 'frames dropped:', len ( filter(lambda x: x[1] is None, results) )
 print 'converting playback frames'
 playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, results)]
 with open(PLAYBACK_VIDEO, 'r') as out_video:
-    playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + "/" + "playback-frames", "playback", WIDTH, HEIGHT)
+    playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
     playbackConverter.convert()
 
-# capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, results)]
 print 'converting capture frames'
+capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, results)]
 with open(CAPTURE_VIDEO, 'r') as in_video:
-    captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + "/" + "capture-frames", "capture", WIDTH, HEIGHT)
+    captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
     captureConverter.convert()
 
 print 'performing ssim computations'
-ssim_log = subprocess.check_output(["%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim" %os.getcwd(), 
-                                    "-r", "%s/playback-frames/playback.y4m" %(os.getcwd()),
-                                    "%s/capture-frames/capture.y4m" %(os.getcwd())])
+os.system('%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim -r %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd(), os.getcwd()))
+# ssim_log = subprocess.check_output(['%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim' %os.getcwd(), 
+#                                     '-r', '%s/playback-frames/playback.y4m' %(os.getcwd()),
+#                                     '%s/capture-frames/capture.y4m' %(os.getcwd())])
 
-ssim_lines = map( lambda x: x.split() , ssim_log.strip().split('\n') )
+ssim_lines = map( lambda x: x.split() , open('.tmp.csv', 'r').read().strip().split('\n') )
 
 ssim_results = []
 for line in ssim_lines:
     total, Y, Cb, Cr = line[1], line[3], line[5], line[7]
     ssim_results.append( (total, Y, Cb, Cr) )
                          
-# shutil.rmtree(os.getcwd() + "/" + "capture-frames")
-# shutil.rmtree(os.getcwd() + "/" + "playback-frames")
-
 ################################################################################
 # print the output log file
 ################################################################################
 with open(RESULTS_LOG, 'w') as logfile:
     assert( len(results) == len(ssim) )
+
+    # print csv header
     logfile.write('# frame_index,sent_cpu_timestamp,received_cpu_timestamp,delay_cpu_time,ssim_total,ssim_Y,ssim_Cb,ssim_Cr\n')
+
     for frame, ssim in zip(filter(lambda x: x[1] is not None, results), ssim_results ):
         playback_frame = frame[0]
         capture_frame = frame[1]
@@ -228,3 +209,6 @@ with open(RESULTS_LOG, 'w') as logfile:
                       str(ssim[2]) + ',' + 
                       str(ssim[3]) + '\n'
                       )
+
+shutil.rmtree(os.getcwd() + '/' + 'capture-frames')
+shutil.rmtree(os.getcwd() + '/' + 'playback-frames')
