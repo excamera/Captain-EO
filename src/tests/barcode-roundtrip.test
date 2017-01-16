@@ -52,11 +52,8 @@ def parse_lines_from_log_file(filename):
 
 read_lines = parse_lines_from_log_file(BARCODE_READ_LOG_FILENAME)
     
-# check to make sure headers are correct
-assert( read_lines[0] == 'frame_num,upper_left_barcode,lower_right_barcode' )
-    
 # check to make sure upper left and lower right barcodes match
-for line in read_lines[1:]:
+for line in read_lines:
     row = line.split(',')
     assert( row[1] == row[2] )
 
@@ -66,7 +63,7 @@ write_lines = parse_lines_from_log_file(BARCODE_WRITE_LOG_FILENAME)
 assert( len(read_lines) == len(write_lines) )
 
 # check to make sure the barcodes read match the ones that were written
-for read_line, write_line in zip(read_lines[1:], write_lines[1:]):
+for read_line, write_line in zip(read_lines, write_lines):
     read_row = read_line.split(',') 
     write_row = write_line.split(',')
 
