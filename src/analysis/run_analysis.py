@@ -1,5 +1,6 @@
 #!/usr/bin/env python -u
 
+import datetime
 import os
 import re
 import shutil
@@ -135,7 +136,7 @@ for line in get_lines_from_log_file ( CAPTURE_LOG ):
 # create a correspondence between the sent and recieved frames
 # NOTE: this assumes code assumes that all frames have a unique barcode. 
 ################################################################################
-results = []
+playback_capture_frame_correspondence = []
 capture_index = -1
 for playback_frame in playback_log:
 
@@ -144,18 +145,18 @@ for playback_frame in playback_log:
     matches = filter ( lambda x: x.upper_left_barcode == ul, capture_log )
 
     if( len(matches) == 0 ):
-        results.append( (playback_frame, None) ) # no frame with matching barcode found
+        playback_capture_frame_correspondence.append( (playback_frame, None) ) # no frame with matching barcode found
 
     else:
         capture_frame = matches[0] # get only the first match; assume repeated frames are the same
         assert ( capture_index  < capture_frame.frame_index ) # never go backwards
         capture_index = capture_frame.frame_index
     
-        results.append( (playback_frame, capture_frame) )
+        playback_capture_frame_correspondence.append( (playback_frame, capture_frame) )
 
-assert( len(playback_log) == len(results) )
-print 'frames received:', len ( filter(lambda x: x[1] is not None, results) )
-print 'frames dropped:', len ( filter(lambda x: x[1] is None, results) )
+assert( len(playback_log) == len(playback_capture_frame_correspondence) )
+print 'frames received:', len ( filter(lambda x: x[1] is not None, playback_capture_frame_correspondence) )
+print 'frames dropped:', len ( filter(lambda x: x[1] is None, playback_capture_frame_correspondence) )
 
 ################################################################################
 # get ssims for the received frames
@@ -163,24 +164,24 @@ print 'frames dropped:', len ( filter(lambda x: x[1] is None, results) )
 
 # convert video to a form where the ssim can be computed
 print 'converting playback frames'
-playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, results)]
+playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
 with open(PLAYBACK_VIDEO, 'r') as out_video:
     playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
     playbackConverter.convert()
 
 print 'converting capture frames'
-capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, results)]
+capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
 with open(CAPTURE_VIDEO, 'r') as in_video:
     captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
     captureConverter.convert()
 
 print 'performing ssim computations'
 os.system('%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim -r %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd(), os.getcwd()))
-# ssim_log = subprocess.check_output(['%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim' %os.getcwd(), 
-#                                     '-r', '%s/playback-frames/playback.y4m' %(os.getcwd()),
-#                                     '%s/capture-frames/capture.y4m' %(os.getcwd())])
+ssim_log = subprocess.check_output(['%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim' %os.getcwd(), 
+                                    '-r', '%s/playback-frames/playback.y4m' %(os.getcwd()),
+                                    '%s/capture-frames/capture.y4m' %(os.getcwd())])
 
-ssim_lines = map( lambda x: x.split() , open('.tmp.csv', 'r').read().strip().split('\n') )
+ssim_lines = map( lambda x: x.split() , open('.tmp.csv', 'r').read().strip().split('\n')[:-1] )
 
 ssim_results = []
 for line in ssim_lines:
@@ -191,12 +192,16 @@ for line in ssim_lines:
 # print the output log file
 ################################################################################
 with open(RESULTS_LOG, 'w') as logfile:
-    assert( len(results) == len(ssim) )
+    print len(playback_capture_frame_correspondence)
+    print len(ssim_results)
+    assert( len(playback_capture_frame_correspondence) == len(ssim_results) )
 
     # print csv header
+    logfile.write('# playback: ' + PLAYBACK_VIDEO + ' capture: ' + CAPTURE_VIDEO + '\n')
+    logfile.write('# Timestamp: ' + str(datetime.datetime.now()) + '\n')
     logfile.write('# frame_index,sent_cpu_timestamp,received_cpu_timestamp,delay_cpu_time,ssim_total,ssim_Y,ssim_Cb,ssim_Cr\n')
 
-    for frame, ssim in zip(filter(lambda x: x[1] is not None, results), ssim_results ):
+    for frame, ssim in zip(filter(lambda x: x[1] is not None, playback_capture_frame_correspondence), ssim_results ):
         playback_frame = frame[0]
         capture_frame = frame[1]
 
@@ -207,8 +212,8 @@ with open(RESULTS_LOG, 'w') as logfile:
                       str(ssim[0]) + ',' + 
                       str(ssim[1]) + ',' + 
                       str(ssim[2]) + ',' + 
-                      str(ssim[3]) + '\n'
-                      )
+                      str(ssim[3]) + '\n')
 
-shutil.rmtree(os.getcwd() + '/' + 'capture-frames')
-shutil.rmtree(os.getcwd() + '/' + 'playback-frames')
+# shutil.rmtree('.tmp.csv')
+# shutil.rmtree(os.getcwd() + '/' + 'capture-frames')
+# shutil.rmtree(os.getcwd() + '/' + 'playback-frames')
