@@ -560,16 +560,19 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         }
         case bmdOutputFrameDisplayedLate:
             std::cout << "Warning: Frame " << m_totalFramesCompleted << " Displayed Late. " << std::endl;
+            throw "Frame Displayed Late.";
             break;
         case bmdOutputFrameDropped:
             std::cout  << "Warning: Frame " << m_totalFramesCompleted << " Dropped. " << std::endl;
             m_totalFramesDropped++;
+            throw "Frame Dropped";
             break;
         case bmdOutputFrameFlushed:
             std::cout << "Warning: Frame " << m_totalFramesCompleted << " Flushed. " << std::endl;
             break;
         default:
             std::cerr << "Error in ScheduledFrameCompleted" << std::endl;
+            throw "Error in ScheduledFrameCompleted";
             break;
     }
     completedFrame->Release();
