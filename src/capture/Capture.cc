@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
             std::time_t time = std::time(nullptr);
             logfile << "# Reading from decklink interface to the video file: " << g_config.m_videoOutputFile << std::endl
                     << "# Time stamp: " << std::asctime(std::localtime(&time))
-                    << "frame_index,upper_left_barcode,lower_right_barcode,cpu_timestamp,decklink_hardwaretimestamp"
+                    << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_timestamp,decklink_hardwaretimestamp"
                     << std::endl;
         }
     }

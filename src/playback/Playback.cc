@@ -47,6 +47,7 @@
 #include <list>
 
 #include "Playback.hh"
+#include "exception.hh"
 #include "display.hh"
 #include "chunk.hh"
 #include "barcode.hh"
@@ -224,7 +225,7 @@ bool Playback::Run()
         
         m_logfile << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result))
-                  << "frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
+                  << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
                   << std::endl;
     }
     else {
@@ -232,7 +233,7 @@ bool Playback::Run()
 
         std::cout << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl 
-                  << "frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
+                  << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
                   << std::endl;
     }
 
@@ -560,19 +561,19 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         }
         case bmdOutputFrameDisplayedLate:
             std::cout << "Warning: Frame " << m_totalFramesCompleted << " Displayed Late. " << std::endl;
-            throw "Frame Displayed Late.";
+            throw std::runtime_error("Frame Displayed Late.");
             break;
         case bmdOutputFrameDropped:
             std::cout  << "Warning: Frame " << m_totalFramesCompleted << " Dropped. " << std::endl;
             m_totalFramesDropped++;
-            throw "Frame Dropped";
+            throw std::runtime_error("Frame Dropped");
             break;
         case bmdOutputFrameFlushed:
             std::cout << "Warning: Frame " << m_totalFramesCompleted << " Flushed. " << std::endl;
             break;
         default:
             std::cerr << "Error in ScheduledFrameCompleted" << std::endl;
-            throw "Error in ScheduledFrameCompleted";
+            throw std::runtime_error("Error in ScheduledFrameCompleted");
             break;
     }
     completedFrame->Release();
