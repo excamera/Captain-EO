@@ -1,17 +1,98 @@
-import argparse
+#!/usr/bin/env python
+
 import os
+import re
 import shutil
 import subprocess
-import re
-from rgb2y4m import RGB2Y4M
+import sys
 
-def parse_lines_from_log_file(log_file):
-    '''
-    parse_lines_from_log_file: helper function to get rid of the extraneous
-    information in the log files produced by the barcode binaries
-    '''
+WIDTH = 1280
+HEIGHT = 720
 
-    lines = log_file.read().split('\n')
+PLAYBACK_VIDEO = None
+PLAYBACK_LOG = None
+CAPTURE_VIDEO = None
+CAPTURE_LOG = None
+RESULTS_LOG = None
+
+class PlaybackLogEntry:
+
+    def __init__(self, frame_index, 
+                 upper_left_barcode, 
+                 lower_right_barcode,
+                 cpu_time_scheduled, 
+                 cpu_time_completed,
+                 decklink_hardwaretime_scheduled, 
+                 decklink_hardwaretime_completed_callback,
+                 decklink_frame_completed_reference_time):
+        
+        assert(upper_left_barcode == lower_right_barcode) # playback frame cannot be corrupted
+        assert(cpu_time_scheduled < cpu_time_completed)
+        assert(decklink_hardwaretime_scheduled < decklink_hardwaretime_completed_callback)
+
+        self.frame_index = frame_index
+
+        self.upper_left_barcode = upper_left_barcode
+        self.lower_right_barcode = lower_right_barcode
+
+        self.cpu_time_scheduled = cpu_time_scheduled
+        self.cpu_time_completed = cpu_time_completed
+
+        self.decklink_hardwaretime_scheduled = decklink_hardwaretime_scheduled
+        self.decklink_hardwaretime_completed_callback = decklink_hardwaretime_completed_callback
+
+        self.decklink_frame_completed_reference_time = decklink_frame_completed_reference_time
+        
+
+class CaptureLogEntry:
+    
+    def __init__(self, frame_index, 
+                 upper_left_barcode, 
+                 lower_right_barcode,
+                 cpu_timestamp, 
+                 decklink_hardwaretimestamp):
+        
+        assert (upper_left_barcode == lower_right_barcode)
+
+        self.frame_index = frame_index
+
+        self.upper_left_barcode = upper_left_barcode
+        self.lower_right_barcode = lower_right_barcode
+
+        self.cpu_timestamp = cpu_timestamp
+        self.decklink_hardwaretimestamp = decklink_hardwaretimestamp
+
+class RGB2Y4M:
+
+    def __init__(self, videofile, frames, dirname, filename, width=1280, height=720, bytesPerPixel=4):
+        """
+        frames should be list of frame index in video
+        """
+        self.video = videofile
+        self.filename = filename
+        self.frames = frames
+        self.dirname = dirname
+        self.width = width
+        self.height = height
+        self.framesize = width * height * bytesPerPixel
+
+    def convert(self):
+        if not os.path.exists(self.dirname):
+            os.mkdir(self.dirname)
+
+        rawfilename = self.dirname + "/" + self.filename + ".raw"
+        print "Appending frames to %s" %rawfilename
+        with open(rawfilename, "wb") as rawfile:
+            for frameidx in sorted(self.frames):
+                self.video.seek(frameidx * self.framesize)
+                frame = self.video.read(self.framesize)
+                rawfile.write(frame)
+
+        #This is bad, change to subprocess.check_call
+        os.system("avconv -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format bgra -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 -y %s" %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
+
+def get_lines_from_log_file(log_filename):
+    lines = open(log_filename, 'r').read().split('\n')
         
     # remove comment lines
     lines = filter(lambda line: re.match('^\s*#.*', line) is None, lines)
@@ -21,160 +102,129 @@ def parse_lines_from_log_file(log_file):
     
     return lines
 
-class VideoException(Exception):
-    pass
+################################################################################
+# start the script below
+################################################################################
+if ( len(sys.argv) != 6 ):
+    print ( 'usage: python %s PLAYBACK.raw PLAYBACK.log CAPTURE.raw CAPTURE.log RESULTS.csv\n' % sys.argv[0] )
+    sys.exit(-1)
 
-class VideoBarcodeException(VideoException):
-    pass
+PLAYBACK_VIDEO = sys.argv[1]
+PLAYBACK_LOG = sys.argv[2]
+CAPTURE_VIDEO = sys.argv[3]
+CAPTURE_LOG = sys.argv[4]
+RESULTS_LOG = sys.argv[5]
 
-class VideoFrameException(VideoException):
-    pass
+################################################################################
+# parse the log files
+################################################################################
 
-class LogReader(object):
+# parse playback log
+playback_log = []
+for line in get_lines_from_log_file ( PLAYBACK_LOG ):
+    p_entry = PlaybackLogEntry ( *[int(item) for item in line.split(',')] )
+    playback_log.append ( p_entry )
+
+# parse capture log
+capture_log = []
+for line in get_lines_from_log_file ( CAPTURE_LOG ):
+    c_entry = CaptureLogEntry( *[int(item) for item in line.split(',')] )
+    capture_log.append(c_entry)
     
-    def __init__(self, logfile, height, width):
-        self.log = logfile
-        self.h = height
-        self.w = width
-        self.records = {}
+################################################################################
+# scan through all the frames which were 'played' and try to find a matching 
+# 'captured' frame.
+# NOTE: this assumes code assumes that all frames have a unique barcode. 
+################################################################################
+results = []
+capture_index = -1
+for playback_frame in playback_log:
 
-class PlaybackLogReader(LogReader):
+    # try to find a corresponding frame in the capture log
+    ul = playback_frame.upper_left_barcode
+    matches = filter ( lambda x: x.upper_left_barcode == ul, capture_log )
 
-    def ingestLog(self, barcodeLog):
-        logFileLines = parse_lines_from_log_file(self.log)
-        logFileLines = logFileLines[1:] # remove csv headers
+    if( len(matches) == 0 ):
+        results.append( (playback_frame, None) ) # no frame with matching barcode found
 
-        for line in logFileLines:
-            idx, ul, lr, cpu_time, decklink_time, queue_occupancy = [int(item) for item in line.split(',')]
-            if ul != lr:
-                raise VideoBarcodeException
-            if idx != barcodeLog[ul]:
-                raise VideoFrameException
-            self.records[ul] = cpu_time, idx
-
-class CaptureLogReader(LogReader):
+    else:
+        capture_frame = matches[0] # get only the first match; assume repeated frames are the same
+        assert ( capture_index  < capture_frame.frame_index ) # never go backwards
+        capture_index = capture_frame.frame_index
     
-    def __init__(self, logfile, height, width):
-        super(CaptureLogReader, self).__init__(logfile, height, width)
-        self.ulTimes = {}
-        self.lrTimes = {}
+        results.append( (playback_frame, capture_frame) )
 
-    def ingestLog(self, barcodeLog):
-        logFileLines = parse_lines_from_log_file(self.log)
-        logFileLines = logFileLines[1:] # remove csv headers
+assert( len(playback_log) == len(results) )
+print 'frames received:', len ( filter(lambda x: x[1] is not None, results) )
+print 'frames dropped:', len ( filter(lambda x: x[1] is None, results) )
 
-        for line in logFileLines:
-            idx, ul, lr, time, = [int(item) for item in line.split(',')]
-            if ul == lr:
-                if self.records.get(ul) is None:
-                    self.records[ul] = time, idx
-            else:
-                if self.ulTimes.get(ul) is None:
-                    self.ulTimes[ul] = time, idx
-                if self.lrTimes.get(lr) is None:
-                    self.lrTimes[lr] = time, idx
+# ################################################################################
+# # get compute statistics for received frames
+# ################################################################################
+# delay_cpu_timestamp = []
+# average_delay_cpu_timestamp = 0
 
-def ingestBarcodeLog(log):
-    barcodeLog = {}
+# #delay_decklink_timestamp = []
+# #average_delay_decklink_timestamp = 0
 
-    logFileLines = parse_lines_from_log_file(log)
-    logFileLines = logFileLines[1:] # remove csv headers
+# for playback_frame, capture_frame in filter(lambda x: x[1] is not None, results):
+#     delay_cpu_timestamp.append ( capture_frame.cpu_timestamp - playback_frame.cpu_time_completed )
+#     average_delay_cpu_timestamp += capture_frame.cpu_timestamp - playback_frame.cpu_time_completed
 
-    for line in logFileLines:
-        idx, barcode = [int(item) for item in line.split(',')]
-        barcodeLog[barcode] = idx
-    return barcodeLog
+#     #delay_decklink_timestamp.append ( capture_frame.decklink_hardwaretimestamp - playback_frame.decklink_hardwaretime_completed_callback )
+#     #average_delay_decklink_timestamp += capture_frame.decklink_hardwaretimestamp - playback_frame.decklink_hardwaretime_completed_callback
 
-def main(args):
-    barcodeLog = ingestBarcodeLog(args.barcode_log)
+# average_delay_cpu_timestamp /= len ( filter(lambda x: x[1] is not None, results) )
+# #average_delay_decklink_timestamp /= len ( filter(lambda x: x[1] is not None, results) )
 
-    playbackLogs = PlaybackLogReader(args.playback_log, args.height, args.width)
-    playbackLogs.ingestLog(barcodeLog)
-    
-    captureLogs = CaptureLogReader(args.capture_log, args.height, args.width)
-    captureLogs.ingestLog(barcodeLog)
-    
-    captureFrames = []
-    playbackFrames = []
-    results = []
-    for frameno in sorted(playbackLogs.records.keys(), cmp=lambda x, y: cmp(barcodeLog[x], barcodeLog[y])):
-        if captureLogs.records.get(frameno) is not None:
-            results.append((
-                barcodeLog[frameno],              # Frame index in video passed to playback
-                playbackLogs.records[frameno][0], # CPU time (us) frame was played
-                captureLogs.records[frameno][0],  # CPU time (us) frame was captured
-                "FULL",                           # Frame captured with UL == RL
-                frameno                           # Barcode number
-            ))
+################################################################################
+# get ssims for the received frames
+################################################################################
 
-            captureFrames.append((captureLogs.records[frameno][1], frameno))
-            playbackFrames.append((playbackLogs.records[frameno][1], frameno))
+# convert video to a form where the ssim can be computed
+print 'converting playback frames'
+playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, results)]
+with open(PLAYBACK_VIDEO, 'r') as out_video:
+    playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + "/" + "playback-frames", "playback", WIDTH, HEIGHT)
+    playbackConverter.convert()
 
-        elif captureLogs.ulTimes.get(frameno) is not None:
-            results.append((
-                barcodeLog[frameno],              # Frame index in video passed to playback
-                playbackLogs.records[frameno][0], # CPU time (us) frame was played
-                captureLogs.ulTimes[frameno][0],  # CPU time (us) frame was captured
-                "UL",                             # Frame barcode only appears in UL
-                frameno                           # Barcode number
-            ))
-        elif captureLogs.lrTimes.get(frameno) is not None:
-            results.append((
-                barcodeLog[frameno],              # Frame index in video passed to playback
-                playbackLogs.records[frameno][0], # CPU time (us) frame was played
-                captureLogs.lrTimes[frameno][0],  # CPU time (us) frame was captured
-                "LR",                             # Frame barcode only appears in LR
-                frameno                           # Barcode number
-            ))
-        else:
-            results.append((
-                barcodeLog[frameno],              # Frame index in video passed to playback
-                playbackLogs.records[frameno][0], # CPU time (us) frame was played
-                None, 
-                "DROPPED",                        # Frame was not captured
-                None
-            ))
-
-    for frameLog in results:
-        args.output.write("Frame %d (%d): " %(frameLog[0], frameLog[1]))
-        args.output.write("%s%s\n" %(frameLog[3], 
-                                     " %d (%d), %fms" %(frameLog[4], frameLog[2], (frameLog[2] - frameLog[1])/1000.0)
-                                        if frameLog[3] != "DROPPED" else ""))
-
-    captureConverter = RGB2Y4M(args.in_video, captureFrames, os.getcwd() + "/" + "capture-frames", "capture", args.width, args.height)
+# capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, results)]
+print 'converting capture frames'
+with open(CAPTURE_VIDEO, 'r') as in_video:
+    captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + "/" + "capture-frames", "capture", WIDTH, HEIGHT)
     captureConverter.convert()
 
-    playbackConverter = RGB2Y4M(args.out_video, playbackFrames, os.getcwd() + "/" + "playback-frames", "playback", args.width, args.height)
-    playbackConverter.convert()
- 
-    with open(os.devnull, 'w') as devnull:
-        #for frameidx, frameno in playbackFrames:
-        subprocess.check_call(["%s/../../third_party/daala_tools/daala/dump_ssim" %os.getcwd(), 
-                                                   "-r", "%s/playback-frames/playback.y4m" %(os.getcwd()),
-                                                   "%s/capture-frames/capture.y4m" %(os.getcwd())])
-    
-    shutil.rmtree(os.getcwd() + "/" + "capture-frames")
-    shutil.rmtree(os.getcwd() + "/" + "playback-frames")
+print 'performing ssim computations'
+ssim_log = subprocess.check_output(["%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim" %os.getcwd(), 
+                                    "-r", "%s/playback-frames/playback.y4m" %(os.getcwd()),
+                                    "%s/capture-frames/capture.y4m" %(os.getcwd())])
 
+ssim_lines = map( lambda x: x.split() , ssim_log.strip().split('\n') )
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--help", help="Print help", action="help")
-    parser.add_argument("-o", "--out-video", type=argparse.FileType('rb'), 
-                        help="Path to raw video played on output")
-    parser.add_argument("-i", "--in-video", type=argparse.FileType('rb'),
-                        help="Path to captured video")
-    parser.add_argument("-p", "--playback-log", type=argparse.FileType('r'),
-                        help="Path to playback log")
-    parser.add_argument("-c", "--capture-log", type=argparse.FileType('r'),
-                        help="Path to capture log")
-    parser.add_argument("-b", "--barcode-log", type=argparse.FileType('r'),
-                        help="Path to barcoder log")
-    parser.add_argument("-r", "--output", type=argparse.FileType('w'),
-                        default="-", help="Output file path") 
-    parser.add_argument("-h", "--height", type=int, default=720, help="Height of frames")
-    parser.add_argument("-w", "--width", type=int, default=1280, help="Width of frames")
-    
-    args = parser.parse_args()
-    print args
-    main(args)
+ssim_results = []
+for line in ssim_lines:
+    total, Y, Cb, Cr = line[1], line[3], line[5], line[7]
+    ssim_results.append( (total, Y, Cb, Cr) )
+                         
+# shutil.rmtree(os.getcwd() + "/" + "capture-frames")
+# shutil.rmtree(os.getcwd() + "/" + "playback-frames")
+
+################################################################################
+# print the output log file
+################################################################################
+with open(RESULTS_LOG, 'w') as logfile:
+    assert( len(results) == len(ssim) )
+    logfile.write('# frame_index,sent_cpu_timestamp,received_cpu_timestamp,delay_cpu_time,ssim_total,ssim_Y,ssim_Cb,ssim_Cr\n')
+    for frame, ssim in zip(filter(lambda x: x[1] is not None, results), ssim_results ):
+        playback_frame = frame[0]
+        capture_frame = frame[1]
+
+        logfile.write(str(playback_frame.frame_index) + ',' + 
+                      str(playback_frame.cpu_time_completed) + ',' +
+                      str(capture_frame.cpu_timestamp) + ',' + 
+                      str(capture_frame.cpu_timestamp - playback_frame.cpu_time_completed) + ',' +
+                      str(ssim[0]) + ',' + 
+                      str(ssim[1]) + ',' + 
+                      str(ssim[2]) + ',' + 
+                      str(ssim[3]) + '\n'
+                      )
