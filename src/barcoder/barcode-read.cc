@@ -47,7 +47,7 @@ int main( int argc, char *argv[] )
   }
 
   /* print csv header */
-  cerr << "frame_num" << "," << "upper_left_barcode" << "," << "lower_right_barcode" << "\n";
+  cerr << "# frame_num" << "," << "upper_left_barcode" << "," << "lower_right_barcode" << "\n";
   
   FileDescriptor stdout { STDOUT_FILENO };
   
