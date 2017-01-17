@@ -88,6 +88,7 @@ void DeckLinkCaptureDelegate::preview(void*, int) {}
 HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame* videoFrame, IDeckLinkAudioInputPacket*)
 {
     void*                               frameBytes;
+
     /* IMPORTANT: get the frame arrived timestamp */
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
     
@@ -110,7 +111,6 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
         std::cerr << "GetHardwareReferenceTimestamp: could not get HardwareReferenceTimestamp for frame timestamp" << std::endl;
         return ret;
     }
-
     
     // Handle Video Frame
     if (videoFrame)
