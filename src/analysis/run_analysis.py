@@ -164,22 +164,22 @@ print 'frames dropped:', len ( filter(lambda x: x[1] is None, playback_capture_f
 
 # convert video to a form where the ssim can be computed
 print 'converting playback frames'
-playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
-with open(PLAYBACK_VIDEO, 'r') as out_video:
-    playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
-    playbackConverter.convert()
+if ( not os.path.exists(os.getcwd() + '/playback-frames/playback.y4m') ):
+    playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
+    with open(PLAYBACK_VIDEO, 'r') as out_video:
+        playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
+        playbackConverter.convert()
 
 print 'converting capture frames'
-capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
-with open(CAPTURE_VIDEO, 'r') as in_video:
-    captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
-    captureConverter.convert()
+if ( not os.path.exists(os.getcwd() + '/capture-frames/capture.y4m') ):
+    capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
+    with open(CAPTURE_VIDEO, 'r') as in_video:
+        captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
+        captureConverter.convert()
 
 print 'performing ssim computations'
-os.system('%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim -r %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd(), os.getcwd()))
-ssim_log = subprocess.check_output(['%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim' %os.getcwd(), 
-                                    '-r', '%s/playback-frames/playback.y4m' %(os.getcwd()),
-                                    '%s/capture-frames/capture.y4m' %(os.getcwd())])
+if ( not os.path.exists(os.getcwd() + '/.tmp.csv') ):
+    os.system('%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim -r -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd(), os.getcwd()))
 
 ssim_lines = map( lambda x: x.split() , open('.tmp.csv', 'r').read().strip().split('\n')[:-1] )
 
@@ -192,9 +192,9 @@ for line in ssim_lines:
 # print the output log file
 ################################################################################
 with open(RESULTS_LOG, 'w') as logfile:
-    print len(playback_capture_frame_correspondence)
+    print len( filter(lambda x: x[1] is not None, playback_capture_frame_correspondence) )
     print len(ssim_results)
-    assert( len(playback_capture_frame_correspondence) == len(ssim_results) )
+    assert( len( filter(lambda x: x[1] is not None, playback_capture_frame_correspondence) ) == len(ssim_results) )
 
     # print csv header
     logfile.write('# playback: ' + PLAYBACK_VIDEO + ' capture: ' + CAPTURE_VIDEO + '\n')
@@ -212,7 +212,7 @@ with open(RESULTS_LOG, 'w') as logfile:
                       str(ssim[0]) + ',' + 
                       str(ssim[1]) + ',' + 
                       str(ssim[2]) + ',' + 
-                      str(ssim[3]) + '\n')
+                      str(ssim[3])[:-1] + '\n')
 
 # shutil.rmtree('.tmp.csv')
 # shutil.rmtree(os.getcwd() + '/' + 'capture-frames')
