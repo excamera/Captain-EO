@@ -50,6 +50,7 @@ using std::chrono::time_point_cast;
 using std::chrono::microseconds;
 
 const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */ 
+static BMDTimeScale prev_frame_recieved_time = (BMDTimeScale)0;
 
 static pthread_mutex_t  g_sleepMutex;
 static pthread_cond_t   g_sleepCond;
@@ -113,6 +114,13 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
         return ret;
     }
     
+    if( prev_frame_recieved_time == 0 ){
+        prev_frame_recieved_time = decklink_frame_reference_timestamp;
+    }
+    else if( decklink_frame_reference_timestamp - prev_frame_recieved_time > 20000 ){
+        throw std::runtime_error("Capture was LATE when capturing a frame.\n");            
+    }
+
     // Handle Video Frame
     if (videoFrame)
     {
