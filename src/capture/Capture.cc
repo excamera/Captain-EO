@@ -118,9 +118,13 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
         prev_frame_recieved_time = decklink_frame_reference_timestamp;
     }
     else if( decklink_frame_reference_timestamp - prev_frame_recieved_time > 20000 ){
+        std::cerr << "Frame was late! Delay was: " << decklink_frame_reference_timestamp - prev_frame_recieved_time << std::endl;
         throw std::runtime_error("Capture was LATE when capturing a frame.\n");            
     }
-
+    else{
+        prev_frame_recieved_time = decklink_frame_reference_timestamp;
+    } 
+    
     // Handle Video Frame
     if (videoFrame)
     {
