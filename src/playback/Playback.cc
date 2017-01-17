@@ -569,6 +569,7 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
             break;
         case bmdOutputFrameFlushed:
             std::cout << "Warning: Frame " << m_totalFramesCompleted << " Flushed. " << std::endl;
+            throw std::runtime_error("Frame Flushed.");
             break;
         default:
             std::cerr << "Error in ScheduledFrameCompleted" << std::endl;
