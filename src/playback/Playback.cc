@@ -226,6 +226,7 @@ bool Playback::Run()
         m_logfile << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result))
                   << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
+                  // << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time,decklink_frame_reference_timestamp" // TODO: remove
                   << std::endl;
     }
     else {
@@ -234,6 +235,7 @@ bool Playback::Run()
         std::cout << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl 
                   << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
+                  // << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time,decklink_frame_reference_timestamp" // TODO: remove
                   << std::endl;
     }
 
@@ -381,10 +383,12 @@ void Playback::ScheduleNextFrame(bool prerolling)
             m_running = false;
             return;
         }
-
+        
         /* IMPORTANT: store the scheduled fram timestamps */
         scheduled_timestamp_cpu.push_back(tp);
         scheduled_timestamp_decklink.push_back(decklink_hardware_timestamp);
+
+        
 
         m_totalFramesScheduled += 1;
     }
@@ -484,13 +488,6 @@ ULONG Playback::Release()
 
 HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, BMDOutputFrameCompletionResult result)
 {
-
-    if (do_exit) {
-        ++m_totalFramesCompleted;
-        completedFrame->Release();
-        return S_OK;
-    }
-    
     /* IMPORTANT: get the time stamps for when a frame is completed */
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
@@ -517,7 +514,23 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         std::cerr << "ScheduledFrameCompleted: could not get FrameCompletionReference timestamp" << std::endl;
         return ret;
     }
-
+    
+    // TODO: remove
+    // BMDTimeValue decklink_frame_reference_timestamp;
+    // if( (ret = completedFrame->GetHardwareReferenceTimestamp(completedFrame, 
+    //                                                          (BMDTimeScale)m_framesPerSecond * 1000, 
+    //                                                          &decklink_frame_reference_timestamp) ) != S_OK ) {
+        
+    //     std::cerr << "GetHardwareReferenceTimestamp: could not get HardwareReferenceTimestamp for frame timestamp" << std::endl;
+    //     return ret;
+    // }
+    
+    if (do_exit) {
+        ++m_totalFramesCompleted;
+        completedFrame->Release();
+        return S_OK;
+    }
+    
     void *frameBytes = NULL;
     completedFrame->GetBytes(&frameBytes);
 
@@ -537,6 +550,7 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
                             << scheduled_timestamp_decklink.front()  << ","
                             << decklink_hardware_timestamp << ","
                             << decklink_frame_completed_timestamp
+                            // << decklink_frame_reference_timestamp << "," // TODO: remove
                             << std::endl;
 
                 scheduled_timestamp_cpu.pop_front();
@@ -550,6 +564,7 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
                             << scheduled_timestamp_decklink.front()  << ","
                             << decklink_hardware_timestamp << ","
                             << decklink_frame_completed_timestamp
+                            // << decklink_frame_reference_timestamp << "," // TODO: remove
                             << std::endl;
 
                 scheduled_timestamp_cpu.pop_front();

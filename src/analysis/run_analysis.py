@@ -51,7 +51,9 @@ class CaptureLogEntry:
                  upper_left_barcode, 
                  lower_right_barcode,
                  cpu_timestamp, 
-                 decklink_hardwaretimestamp):
+                 decklink_hardwaretimestamp
+                 decklink_frame_hardware_reference_time,
+                 decklink_frame_hardware_reference_duration):
         
         assert (upper_left_barcode == lower_right_barcode)
 
@@ -62,6 +64,8 @@ class CaptureLogEntry:
 
         self.cpu_timestamp = cpu_timestamp
         self.decklink_hardwaretimestamp = decklink_hardwaretimestamp
+        self.decklink_frame_hardware_reference_time = decklink_frame_hardware_reference_time
+        self.decklink_frame_hardware_reference_duration = decklink_frame_hardware_reference_duration
 
 class RGB2Y4M:
 

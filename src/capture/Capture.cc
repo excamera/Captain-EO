@@ -88,7 +88,30 @@ void DeckLinkCaptureDelegate::preview(void*, int) {}
 HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame* videoFrame, IDeckLinkAudioInputPacket*)
 {
     void*                               frameBytes;
+    /* IMPORTANT: get the frame arrived timestamp */
+    time_point<high_resolution_clock> tp = high_resolution_clock::now();
+    
+    unsigned long m_framesPerSecond = 60;
+    BMDTimeValue decklink_hardware_timestamp;
+    BMDTimeValue decklink_time_in_frame;
+    BMDTimeValue decklink_ticks_per_frame;
+    HRESULT ret;
+    ret = g_deckLinkInput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
+                                                     &decklink_hardware_timestamp,
+                                                     &decklink_time_in_frame,
+                                                     &decklink_ticks_per_frame);
+            
+    BMDTimeValue decklink_frame_reference_timestamp;
+    BMDTimeValue decklink_frame_reference_duration;
+    if( (ret = videoFrame->GetHardwareReferenceTimestamp((BMDTimeScale)m_framesPerSecond * 1000, 
+                                                         &decklink_frame_reference_timestamp,
+                                                         &decklink_frame_reference_duration) ) != S_OK ) {
+        
+        std::cerr << "GetHardwareReferenceTimestamp: could not get HardwareReferenceTimestamp for frame timestamp" << std::endl;
+        return ret;
+    }
 
+    
     // Handle Video Frame
     if (videoFrame)
     {
@@ -111,25 +134,10 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             //    return S_OK;
             
             printf("Frame received (#%lu) - %s - Size: %li bytes\n",
-                g_frameCount,
-                "Valid Frame",
-                framesize);
+                   g_frameCount,
+                   "Valid Frame",
+                   framesize);
 
-            /* IMPORTANT: get the frame arrived timestamp */
-            time_point<high_resolution_clock> tp = high_resolution_clock::now();
-
-            unsigned long m_framesPerSecond = 60;
-            BMDTimeValue decklink_hardware_timestamp;
-            BMDTimeValue decklink_time_in_frame;
-            BMDTimeValue decklink_ticks_per_frame;
-            HRESULT ret;
-            ret = g_deckLinkInput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
-                                                             &decklink_hardware_timestamp,
-                                                             &decklink_time_in_frame,
-                                                             &decklink_ticks_per_frame);
-            
-            std::cerr << decklink_hardware_timestamp << " " << decklink_time_in_frame << " " << decklink_ticks_per_frame  << "\n";
-            
             if (ret != S_OK) {
                 std::cerr << "Error: failed to get the hardware timestamp" << std::endl;
                 return E_FAIL;
@@ -142,13 +150,17 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
                     logfile << g_validFrameCount << "," 
                             << barcodes.first << "," << barcodes.second << ","
                             << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
-                            << decklink_hardware_timestamp
+                            << decklink_hardware_timestamp << ","
+                            << decklink_frame_reference_timestamp << ","
+                            << decklink_frame_reference_duration 
                             << std::endl;
                 else
                     std::cout   << g_validFrameCount << "," 
                                 << barcodes.first << "," << barcodes.second << ","
                                 << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
-                                << decklink_hardware_timestamp
+                                << decklink_hardware_timestamp << ","
+                                << decklink_frame_reference_timestamp << ","
+                                << decklink_frame_reference_duration 
                                 << std::endl;
                 g_validFrameCount++;
 
@@ -407,7 +419,7 @@ int main(int argc, char *argv[])
             std::time_t time = std::time(nullptr);
             logfile << "# Reading from decklink interface to the video file: " << g_config.m_videoOutputFile << std::endl
                     << "# Time stamp: " << std::asctime(std::localtime(&time))
-                    << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_timestamp,decklink_hardwaretimestamp"
+                    << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_timestamp,decklink_hardwaretimestamp,decklink_frame_reference_timestamp,decklink_frame_reference_duration"
                     << std::endl;
         }
     }
