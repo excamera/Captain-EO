@@ -49,6 +49,8 @@ using std::chrono::high_resolution_clock;
 using std::chrono::time_point_cast;
 using std::chrono::microseconds;
 
+const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */ 
+
 static pthread_mutex_t  g_sleepMutex;
 static pthread_cond_t   g_sleepCond;
 static int              g_videoOutputFile = -1;
@@ -92,19 +94,18 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
     /* IMPORTANT: get the frame arrived timestamp */
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
     
-    unsigned long m_framesPerSecond = 60;
     BMDTimeValue decklink_hardware_timestamp;
     BMDTimeValue decklink_time_in_frame;
     BMDTimeValue decklink_ticks_per_frame;
     HRESULT ret;
-    ret = g_deckLinkInput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
+    ret = g_deckLinkInput->GetHardwareReferenceClock(ticks_per_second, 
                                                      &decklink_hardware_timestamp,
                                                      &decklink_time_in_frame,
                                                      &decklink_ticks_per_frame);
             
     BMDTimeValue decklink_frame_reference_timestamp;
     BMDTimeValue decklink_frame_reference_duration;
-    if( (ret = videoFrame->GetHardwareReferenceTimestamp((BMDTimeScale)m_framesPerSecond * 1000, 
+    if( (ret = videoFrame->GetHardwareReferenceTimestamp(ticks_per_second,
                                                          &decklink_frame_reference_timestamp,
                                                          &decklink_frame_reference_duration) ) != S_OK ) {
         
@@ -130,18 +131,11 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             Chunk chunk((uint8_t*)frameBytes, framesize);
             XImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
             auto barcodes = Barcode::readBarcodes(img);
-            //if (!m_scanner.scanFrame((RGBPixel*)frameBytes))
-            //    return S_OK;
             
             printf("Frame received (#%lu) - %s - Size: %li bytes\n",
                    g_frameCount,
                    "Valid Frame",
                    framesize);
-
-            if (ret != S_OK) {
-                std::cerr << "Error: failed to get the hardware timestamp" << std::endl;
-                return E_FAIL;
-            }
 
             /* IMPORTANT: log the timestamps  */
             if (barcodes.first != 0xFFFFFFFFFFFFFFFF 
@@ -420,7 +414,7 @@ int main(int argc, char *argv[])
             logfile << "# Reading from decklink interface to the video file: " << g_config.m_videoOutputFile << std::endl
                     << "# Time stamp: " << std::asctime(std::localtime(&time))
                     << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_timestamp,decklink_hardwaretimestamp,decklink_frame_reference_timestamp,decklink_frame_reference_duration"
-                    << std::endl;
+                    << "\n";
         }
     }
 

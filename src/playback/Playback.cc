@@ -57,6 +57,8 @@ using std::chrono::high_resolution_clock;
 using std::chrono::time_point_cast;
 using std::chrono::microseconds;
 
+const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */ 
+
 pthread_mutex_t         sleepMutex;
 pthread_cond_t          sleepCond;
 bool                do_exit = false;
@@ -226,8 +228,7 @@ bool Playback::Run()
         m_logfile << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result))
                   << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
-                  // << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time,decklink_frame_reference_timestamp" // TODO: remove
-                  << std::endl;
+                  << "\n";
     }
     else {
         std::time_t result = std::time(nullptr);
@@ -235,8 +236,7 @@ bool Playback::Run()
         std::cout << "# Writing video to decklink interface: " << m_config->m_videoInputFile << std::endl
                   << "# Time stamp: " << std::asctime(std::localtime(&result)) << std::endl 
                   << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time"
-                  // << "# frame_index,upper_left_barcode,lower_right_barcode,cpu_time_scheduled,cpu_time_completed,decklink_hardwaretime_scheduled,decklink_hardwaretime_completed_callback,decklink_frame_completed_reference_time,decklink_frame_reference_timestamp" // TODO: remove
-                  << std::endl;
+                  << "\n";
     }
 
     m_config->DisplayConfiguration();
@@ -370,12 +370,11 @@ void Playback::ScheduleNextFrame(bool prerolling)
         /* IMPORTANT: get the scheduled frame timestamps */
         time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
-        unsigned long m_framesPerSecond = 60;
         BMDTimeValue decklink_hardware_timestamp;
         BMDTimeValue decklink_time_in_frame;
         BMDTimeValue decklink_ticks_per_frame;
         HRESULT ret;
-        if ( (ret = m_deckLinkOutput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
+        if ( (ret = m_deckLinkOutput->GetHardwareReferenceClock(ticks_per_second,
                                                                 &decklink_hardware_timestamp,
                                                                 &decklink_time_in_frame,
                                                                 &decklink_ticks_per_frame) ) != S_OK) {
@@ -491,12 +490,11 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
     /* IMPORTANT: get the time stamps for when a frame is completed */
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
 
-    unsigned long m_framesPerSecond = 60;
     BMDTimeValue decklink_hardware_timestamp;
     BMDTimeValue decklink_time_in_frame;
     BMDTimeValue decklink_ticks_per_frame;
     HRESULT ret;
-    if ( (ret = m_deckLinkOutput->GetHardwareReferenceClock((BMDTimeScale)m_framesPerSecond * 1000, 
+    if ( (ret = m_deckLinkOutput->GetHardwareReferenceClock(ticks_per_second,
                                                             &decklink_hardware_timestamp,
                                                             &decklink_time_in_frame,
                                                             &decklink_ticks_per_frame) ) != S_OK) {
@@ -506,7 +504,7 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
     
     BMDTimeValue decklink_frame_completed_timestamp;
     if( (ret = m_deckLinkOutput->GetFrameCompletionReferenceTimestamp(completedFrame, 
-                                                                      (BMDTimeScale)m_framesPerSecond * 1000, 
+                                                                      ticks_per_second,
                                                                       &decklink_frame_completed_timestamp) ) != S_OK ) {
         
         std::cerr << "ScheduledFrameCompleted: could not get FrameCompletionReference timestamp" << std::endl;
