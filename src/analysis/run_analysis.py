@@ -64,6 +64,7 @@ class CaptureLogEntry:
 
         self.cpu_timestamp = cpu_timestamp
         self.decklink_hardwaretimestamp = decklink_hardwaretimestamp
+
         self.decklink_frame_hardware_reference_time = decklink_frame_hardware_reference_time
         self.decklink_frame_hardware_reference_duration = decklink_frame_hardware_reference_duration
 
@@ -203,7 +204,7 @@ with open(RESULTS_LOG, 'w') as logfile:
     # print csv header
     logfile.write('# playback: ' + PLAYBACK_VIDEO + ' capture: ' + CAPTURE_VIDEO + '\n')
     logfile.write('# Timestamp: ' + str(datetime.datetime.now()) + '\n')
-    logfile.write('# frame_index,sent_cpu_timestamp,received_cpu_timestamp,delay_cpu_time,ssim_total,ssim_Y,ssim_Cb,ssim_Cr\n')
+    logfile.write('# frame_index,sent_cpu_timestamp,received_cpu_timestamp,delay_cpu_time,sent_decklink_timestamp,received_decklink_time,delay_decklink_time,ssim_total,ssim_Y,ssim_Cb,ssim_Cr\n')
 
     for frame, ssim in zip(filter(lambda x: x[1] is not None, playback_capture_frame_correspondence), ssim_results ):
         playback_frame = frame[0]
@@ -213,6 +214,9 @@ with open(RESULTS_LOG, 'w') as logfile:
                       str(playback_frame.cpu_time_completed) + ',' +
                       str(capture_frame.cpu_timestamp) + ',' + 
                       str(capture_frame.cpu_timestamp - playback_frame.cpu_time_completed) + ',' +
+                      str(playback_frame.decklink_frame_completed_reference_time) + ',' +
+                      str(capture_frame.decklink_frame_hardware_reference_time) + ',' + 
+                      str(capture_frame.decklink_frame_hardware_reference_time - playback_frame.decklink_frame_completed_reference_time) + ',' +
                       str(ssim[0]) + ',' + 
                       str(ssim[1]) + ',' + 
                       str(ssim[2]) + ',' + 
