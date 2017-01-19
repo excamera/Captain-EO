@@ -39,6 +39,11 @@ BMDConfig::BMDConfig() :
     m_pixelFormat(bmdFormat8BitBGRA),
     m_videoInputFile(),
     m_logFilename(),
+    m_uplinkTrace(),
+    m_downlinkTrace(),
+    m_uplinkLogFile(),
+    m_downlinkLogFile(),
+    m_numBlackFrames(0),
     m_deckLinkName(),
     m_displayModeName()
 {}
@@ -57,7 +62,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
     int     ch;
     bool    displayHelp = false;
 
-    while ((ch = getopt(argc, argv, "d:?hm:p:v:l:")) != -1)
+    while ((ch = getopt(argc, argv, "d:?hm:p:v:l:u:n:b:k:j:")) != -1)
     {
         switch (ch)
         {
@@ -90,6 +95,25 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
                         return false;
                 }
                 break;
+            case 'u':
+                m_uplinkTrace = optarg;
+                break;
+
+            case 'n':
+                m_downlinkTrace = optarg;
+                break;
+
+            case 'b':
+                m_numBlackFrames = atoi(optarg);
+                break;
+
+            case 'k':
+                m_uplinkLogFile = optarg;
+                break;
+
+            case 'j':
+                m_downlinkLogFile = optarg;
+                break;
 
             case 'h':
                 displayHelp = true;
@@ -111,28 +135,28 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
     if (displayHelp)
         DisplayUsage(0);
 
-    // Get device and display mode names
-    IDeckLink *deckLink = GetDeckLink(m_deckLinkIndex);
-    if (deckLink != NULL)
-    {
-        IDeckLinkDisplayMode *displayMode = GetDeckLinkDisplayMode(deckLink, m_displayModeIndex);
-        if (displayMode != NULL)
-        {
-            displayMode->GetName((const char**)&m_displayModeName);
-            displayMode->Release();
-        }
-        else
-        {
-            m_displayModeName = strdup("Invalid");
-        }
+    // // Get device and display mode names
+    // IDeckLink *deckLink = GetDeckLink(m_deckLinkIndex);
+    // if (deckLink != NULL)
+    // {
+    //     IDeckLinkDisplayMode *displayMode = GetDeckLinkDisplayMode(deckLink, m_displayModeIndex);
+    //     if (displayMode != NULL)
+    //     {
+    //         displayMode->GetName((const char**)&m_displayModeName);
+    //         displayMode->Release();
+    //     }
+    //     else
+    //     {
+    //         m_displayModeName = strdup("Invalid");
+    //     }
 
-        deckLink->GetModelName((const char**)&m_deckLinkName);
-        deckLink->Release();
-    }
-    else
-    {
-        m_deckLinkName = strdup("Invalid");
-    }
+    //     deckLink->GetModelName((const char**)&m_deckLinkName);
+    //     deckLink->Release();
+    // }
+    // else
+    // {
+    //     m_deckLinkName = strdup("Invalid");
+    // }
 
     return true;
 }
@@ -335,7 +359,7 @@ bail:
 
 void BMDConfig::DisplayConfiguration()
 {
-    fprintf(stderr, "Capturing with the following configuration:\n"
+    fprintf(stderr, "Playing with the following configuration:\n"
         " - Playback device: %s\n"
         " - Video mode: %s\n"
         " - Pixel format: %s\n",

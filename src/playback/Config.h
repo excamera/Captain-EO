@@ -48,6 +48,12 @@ public:
 
     const char*             m_videoInputFile;
     const char*             m_logFilename;
+    const char*             m_uplinkTrace;
+    const char*             m_downlinkTrace;
+    const char*             m_uplinkLogFile;
+    const char*             m_downlinkLogFile;
+    int                     m_numBlackFrames;
+
 
 private:
     char*                   m_deckLinkName;

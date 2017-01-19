@@ -6,7 +6,7 @@ PLAYBACK_BINARY=$SCRIPT_DIRPATH/../src/playback/playback
 
 # check params
 if [[ -z $1 || -z $2 ]]; then
-    echo "Usage: $0 INPUT_VIDEO OUTPUT_LOGFILE"
+    echo "Usage: $0 INPUT_VIDEO OUTPUT_LOGFILE NUM_BLACK_FRAMES"
     echo
     exit -1
 fi
@@ -30,5 +30,9 @@ INPUT_VIDEO_FILEPATH=$(readlink -e $1)
 touch $2
 OUTPUT_LOG_FILEPATH=$(readlink -e $2)
 
-$PLAYBACK_BINARY -d 0 -m 15 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH \
-    "/home/john/Work/multisend/sender/cellsim /home/john/Work/mahimahi/traces/Verizon-LTE-short.up /home/john/Work/mahimahi/traces/Verizon-LTE-short.down 0 eth1 eth0"
+$PLAYBACK_BINARY -d 0 -m 15 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH   \
+       -u /home/john/Work/mahimahi/traces/Verizon-LTE-short.up                      \
+       -n /home/john/Work/mahimahi/traces/Verizon-LTE-short.down                    \
+       -k uplink.log                                                                \
+       -j downlink.log                                                              \
+       -b $3

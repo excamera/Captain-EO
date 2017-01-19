@@ -45,6 +45,7 @@
 #include <ctime>
 #include <cassert>
 #include <list>
+#include <memory>
 
 #include "Playback.hh"
 #include "exception.hh"
@@ -80,6 +81,7 @@ int main(int argc, char *argv[])
 {
     int             exitStatus = 1;
     Playback*    generator = NULL;
+    std::unique_ptr<ChildProcess> command_process;
 
     pthread_mutex_init(&sleepMutex, NULL);
     pthread_cond_init(&sleepCond, NULL);
@@ -101,16 +103,30 @@ int main(int argc, char *argv[])
     generator = new Playback(&config);
     std::cerr << "done!";
     
-    // TODO: make this not hard coded...
-    ChildProcess command_process ( "cellsim", [&]() {
-            return ezexec ( { "/home/john/Work/multisend/sender/cellsim", 
-                        "/home/john/Work/mahimahi/traces/Verizon-LTE-short.up",
-                        "/home/john/Work/mahimahi/traces/Verizon-LTE-short.down",
-                        "0",
-                        "eth1",
-                        "eth0"} );
+
+    if (config.m_uplinkTrace != NULL && config.m_downlinkTrace != NULL)
+    {
+        std::vector<std::string> args = {   
+            "/home/john/Work/multisend/sender/cellsim", 
+            config.m_uplinkTrace,
+            config.m_downlinkTrace,
+            "0",
+            "eth1",
+            "eth0"
+        };
+        if (config.m_uplinkLogFile != NULL)
+        {
+            args.push_back(config.m_uplinkLogFile);
+            if (config.m_downlinkLogFile != NULL)
+                args.push_back(config.m_downlinkLogFile);
         }
-        );
+
+        command_process = std::unique_ptr<ChildProcess>(
+            new ChildProcess( "cellsim", [&]() {
+                return ezexec ( args );
+            }));
+    }
+
 
     generator->Run();
     exitStatus = 0;
@@ -388,7 +404,8 @@ void Playback::ScheduleNextFrame(bool prerolling)
         Chunk c = m_infile(m_totalFramesScheduled * frame_size, frame_size);
 
         std::memcpy(frameBytes, c.buffer(), c.size());
-        if (m_deckLinkOutput->ScheduleVideoFrame(newFrame, (m_totalFramesScheduled * m_frameDuration), m_frameDuration, m_frameTimescale) != S_OK)
+        const unsigned int frame_time = (m_config->m_numBlackFrames + m_totalFramesScheduled) * m_frameDuration;
+        if (m_deckLinkOutput->ScheduleVideoFrame(newFrame, frame_time, m_frameDuration, m_frameTimescale) != S_OK)
             return;
         
         /* IMPORTANT: get the scheduled frame timestamps */
@@ -518,6 +535,13 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
     BMDTimeValue decklink_time_in_frame;
     BMDTimeValue decklink_ticks_per_frame;
     HRESULT ret;
+
+    if (do_exit) {
+        ++m_totalFramesCompleted;
+        completedFrame->Release();
+        return S_OK;
+    }
+
     if ( (ret = m_deckLinkOutput->GetHardwareReferenceClock(ticks_per_second,
                                                             &decklink_hardware_timestamp,
                                                             &decklink_time_in_frame,
@@ -535,14 +559,6 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         return ret;
     }
 
-
-    
-    if (do_exit) {
-        ++m_totalFramesCompleted;
-        completedFrame->Release();
-        return S_OK;
-    }
-    
     void *frameBytes = NULL;
     completedFrame->GetBytes(&frameBytes);
 
