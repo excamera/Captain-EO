@@ -38,8 +38,7 @@ AC_CONFIG_FILES([Makefile
          src/rgb-example/Makefile
          src/capture/Makefile
          src/barcoder/Makefile
-         src/decklink/Makefile
          src/scanner/Makefile
-	 src/tests/Makefile
+	      src/tests/Makefile
 	 ])
 AC_OUTPUT

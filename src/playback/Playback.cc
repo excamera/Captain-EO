@@ -155,6 +155,7 @@ bool Playback::Run()
     bool                            success = false;
 
     IDeckLinkIterator*              deckLinkIterator = NULL;
+    IDeckLinkConfiguration*         deckLinkConfiguration = NULL;
     IDeckLinkDisplayModeIterator*   displayModeIterator = NULL;
     char*                           displayModeName = NULL;
 
@@ -182,6 +183,15 @@ bool Playback::Run()
         fprintf(stderr, "Unable to get DeckLink device %u\n", m_config->m_deckLinkIndex);
         goto bail;
     }
+
+    if (m_deckLink->QueryInterface(IID_IDeckLinkConfiguration, (void**)&deckLinkConfiguration) != S_OK)
+        goto bail;
+
+    deckLinkConfiguration->SetInt(bmdDeckLinkConfigVideoOutputIdleOperation, (int64_t)bmdIdleVideoOutputBlack);
+    deckLinkConfiguration->SetInt(bmdDeckLinkConfigCapturePassThroughMode, (int64_t)bmdDeckLinkCapturePassthroughModeDisabled);
+
+    //Requires root:
+    deckLinkConfiguration->WriteConfigurationToPreferences();
 
     // Get the output (display) interface of the DeckLink device
     if (m_deckLink->QueryInterface(IID_IDeckLinkOutput, (void**)&m_deckLinkOutput) != S_OK)
@@ -286,6 +296,9 @@ bail:
     if (m_deckLinkOutput != NULL)
         m_deckLinkOutput->Release();
 
+    if (deckLinkConfiguration != NULL)
+        deckLinkConfiguration->Release();
+
     if (m_deckLink != NULL)
         m_deckLink->Release();
 
@@ -340,6 +353,8 @@ void Playback::StopRunning()
     // Stop the audio and video output streams immediately
     m_deckLinkOutput->StopScheduledPlayback(0, NULL, 0); 
     // debugf.close();
+    m_deckLinkOutput->DisableVideoOutput();
+
     // Success; update the UI
     m_running = false;
 }
@@ -519,6 +534,8 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
         std::cerr << "ScheduledFrameCompleted: could not get FrameCompletionReference timestamp" << std::endl;
         return ret;
     }
+
+
     
     if (do_exit) {
         ++m_totalFramesCompleted;
@@ -588,7 +605,17 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
     completedFrame->Release();
     ++m_totalFramesCompleted;
     
-    ScheduleNextFrame(false);
+    const unsigned int frame_size = 4 * m_frameWidth * m_frameHeight;
+    const unsigned int frame_count = m_infile.size() / (uint64_t)frame_size;
+    
+    if ( m_totalFramesCompleted >= frame_count ) {
+        //m_deckLinkOutput->StopScheduledPlayback(0, NULL, 0);
+        std::cout << "All frames completed: " << frame_count << std::endl;
+        do_exit = true;
+
+        pthread_cond_signal(&sleepCond);
+    } else
+        ScheduleNextFrame(false);
 
     return S_OK;
 }
