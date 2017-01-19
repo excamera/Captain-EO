@@ -27,6 +27,7 @@ class PlaybackLogEntry:
                  decklink_hardwaretime_completed_callback,
                  decklink_frame_completed_reference_time):
         
+        print frame_index
         assert(upper_left_barcode == lower_right_barcode) # playback frame cannot be corrupted
         assert(cpu_time_scheduled < cpu_time_completed)
         assert(decklink_hardwaretime_scheduled < decklink_hardwaretime_completed_callback)
@@ -51,10 +52,11 @@ class CaptureLogEntry:
                  upper_left_barcode, 
                  lower_right_barcode,
                  cpu_timestamp, 
-                 decklink_hardwaretimestamp
+                 decklink_hardwaretimestamp,
                  decklink_frame_hardware_reference_time,
                  decklink_frame_hardware_reference_duration):
         
+        print frame_index
         assert (upper_left_barcode == lower_right_barcode)
 
         self.frame_index = frame_index
