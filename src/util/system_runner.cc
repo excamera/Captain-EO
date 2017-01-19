@@ -20,16 +20,6 @@ int ezexec( const vector< string > & command, const bool path_search )
         throw runtime_error( "ezexec: empty command" );
     }
 
-    if ( geteuid() == 0 or getegid() == 0 ) {
-        if ( environ ) {
-            throw runtime_error( "BUG: root's environment not cleared" );
-        }
-
-        if ( path_search ) {
-            throw runtime_error( "BUG: root should not search PATH" );
-        }
-    }
-
     /* copy the arguments to mutable structures */
     vector<char *> argv;
     vector< vector< char > > argv_data;

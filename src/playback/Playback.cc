@@ -51,6 +51,8 @@
 #include "display.hh"
 #include "chunk.hh"
 #include "barcode.hh"
+#include "child_process.hh"
+#include "system_runner.hh"
 
 using std::chrono::time_point;
 using std::chrono::high_resolution_clock;
@@ -90,7 +92,7 @@ int main(int argc, char *argv[])
     if (!config.ParseArguments(argc, argv))
     {
         config.DisplayUsage(exitStatus);
-        goto bail;
+        return EXIT_FAILURE;
     }
 
     SystemCall( "mlockall", mlockall( MCL_CURRENT | MCL_FUTURE ) );
@@ -98,14 +100,21 @@ int main(int argc, char *argv[])
     std::cerr << "Loading file...";
     generator = new Playback(&config);
     std::cerr << "done!";
+    
+    // TODO: make this not hard coded...
+    ChildProcess command_process ( "cellsim", [&]() {
+            return ezexec ( { "/home/john/Work/multisend/sender/cellsim", 
+                        "/home/john/Work/mahimahi/traces/Verizon-LTE-short.up",
+                        "/home/john/Work/mahimahi/traces/Verizon-LTE-short.down",
+                        "0",
+                        "eth1",
+                        "eth0"} );
+        }
+        );
 
-    if (!generator->Run())
-        goto bail;
-
-    // All Okay.
+    generator->Run();
     exitStatus = 0;
 
-bail:
     if (generator)
     {
         generator->Release();

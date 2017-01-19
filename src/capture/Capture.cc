@@ -49,7 +49,7 @@ using std::chrono::high_resolution_clock;
 using std::chrono::time_point_cast;
 using std::chrono::microseconds;
 
-const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */ 
+ const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */ 
 static BMDTimeScale prev_frame_recieved_time = (BMDTimeScale)0;
 
 static pthread_mutex_t  g_sleepMutex;
