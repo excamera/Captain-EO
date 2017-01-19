@@ -30,4 +30,5 @@ INPUT_VIDEO_FILEPATH=$(readlink -e $1)
 touch $2
 OUTPUT_LOG_FILEPATH=$(readlink -e $2)
 
-$PLAYBACK_BINARY -d 0 -m 15 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH
+$PLAYBACK_BINARY -d 0 -m 15 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH \
+    "/home/john/Work/multisend/sender/cellsim /home/john/Work/mahimahi/traces/Verizon-LTE-short.up /home/john/Work/mahimahi/traces/Verizon-LTE-short.down 0 eth1 eth0"
