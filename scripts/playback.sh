@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+readonly NUM_BLACK_FRAME=3600 # 1 minute of black frames at 60Hz
+
 SCRIPT_FILEPATH=$(readlink -e ${BASH_SOURCE[0]})
 SCRIPT_DIRPATH=$(dirname $SCRIPT_FILEPATH)
 PLAYBACK_BINARY=$SCRIPT_DIRPATH/../src/playback/playback
@@ -30,9 +32,9 @@ INPUT_VIDEO_FILEPATH=$(readlink -e $1)
 touch $2
 OUTPUT_LOG_FILEPATH=$(readlink -e $2)
 
-$PLAYBACK_BINARY -d 0 -m 15 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH   \
+$PLAYBACK_BINARY -d 0 -m 14 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH   \
        -u /home/john/Work/mahimahi/traces/Verizon-LTE-short.up                      \
        -n /home/john/Work/mahimahi/traces/Verizon-LTE-short.down                    \
        -k uplink.log                                                                \
        -j downlink.log                                                              \
-       -b $3
+       -b $NUM_BLACK_FRAME
