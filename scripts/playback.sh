@@ -32,9 +32,9 @@ INPUT_VIDEO_FILEPATH=$(readlink -e $1)
 touch $2
 OUTPUT_LOG_FILEPATH=$(readlink -e $2)
 
-$PLAYBACK_BINARY -d 0 -m 14 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH   \
-       -u /home/john/Work/mahimahi/traces/Verizon-LTE-short.up                      \
-       -n /home/john/Work/mahimahi/traces/Verizon-LTE-short.down                    \
-       -k uplink.log                                                                \
-       -j downlink.log                                                              \
+nice -n 15 $PLAYBACK_BINARY -d 0 -m 14 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH \
+       -u /home/john/Work/salsify-results/traces/goodbad.up \
+       -n /home/john/Work/salsify-results/traces/goodbad.down \
+       -k uplink.log \
+       -j downlink.log \
        -b $NUM_BLACK_FRAME
