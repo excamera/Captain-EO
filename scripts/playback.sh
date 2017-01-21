@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
 readonly NUM_BLACK_FRAME=3600 # 1 minute of black frames at 60Hz
+#readonly NUM_BLACK_FRAME=0 # 1 minute of black frames at 60Hz
 
 SCRIPT_FILEPATH=$(readlink -e ${BASH_SOURCE[0]})
 SCRIPT_DIRPATH=$(dirname $SCRIPT_FILEPATH)
@@ -32,7 +33,7 @@ INPUT_VIDEO_FILEPATH=$(readlink -e $1)
 touch $2
 OUTPUT_LOG_FILEPATH=$(readlink -e $2)
 
-nice -n 15 $PLAYBACK_BINARY -d 0 -m 14 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH \
+nice -n -15 $PLAYBACK_BINARY -d 0 -m 14 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH \
        -u /home/john/Work/salsify-results/traces/goodbad.up \
        -n /home/john/Work/salsify-results/traces/goodbad.down \
        -k uplink.log \

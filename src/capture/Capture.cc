@@ -25,6 +25,9 @@
 ** -LICENSE-END-
 */
 
+#include <mutex>
+#include <queue>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +51,9 @@ using std::chrono::time_point;
 using std::chrono::high_resolution_clock;
 using std::chrono::time_point_cast;
 using std::chrono::microseconds;
+
+std::queue<IDeckLinkVideoInputFrame*> frame_queue;
+std::mutex frame_queue_lock;
 
  const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */ 
 static BMDTimeScale prev_frame_recieved_time = (BMDTimeScale)0;
@@ -124,7 +130,7 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
     else{
         prev_frame_recieved_time = decklink_frame_reference_timestamp;
     } 
-    
+  
     // Handle Video Frame
     if (videoFrame)
     {
@@ -172,9 +178,12 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 
                 if (g_videoOutputFile != -1)
                 {
-                    ssize_t ret = write(g_videoOutputFile, frameBytes, framesize);
-                    if (ret < 0) 
-                        fprintf(stderr, "Cannot write to file.\n");
+                    std::lock_guard<std::mutex> lg(frame_queue_lock);
+                    videoFrame->AddRef();
+                    frame_queue.push(videoFrame);
+                    // ssize_t ret = write(g_videoOutputFile, frameBytes, framesize);
+                    // if (ret < 0) 
+                    //     fprintf(stderr, "Cannot write to file.\n");
                 }
             }
 
@@ -444,6 +453,31 @@ int main(int argc, char *argv[])
         result = g_deckLinkInput->StartStreams();
         if (result != S_OK)
             goto bail;
+        
+        const unsigned int framesize = 1280 * 720 * 4;
+        while ( !g_do_exit ) {
+            IDeckLinkVideoInputFrame* frame = nullptr;
+            {
+                std::lock_guard<std::mutex> lg(frame_queue_lock);
+                if( !frame_queue.empty() ) {
+                    frame = frame_queue.front();
+                    frame_queue.pop();
+                }
+            }
+            if ( frame != nullptr ){
+                uint8_t* buffer = nullptr;
+                frame->GetBytes((void**)&buffer);
+
+                ssize_t ret = write(g_videoOutputFile, buffer, framesize);
+                if (ret < 0) 
+                    fprintf(stderr, "Cannot write to file.\n");
+
+                frame->Release();
+            }
+            else{
+                usleep(1000);
+            }
+        }
 
         // All Okay.
         exitStatus = 0;

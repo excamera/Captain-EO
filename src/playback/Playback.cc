@@ -25,6 +25,8 @@
 ** -LICENSE-END-
 */
 
+#include <atomic>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -46,7 +48,6 @@
 #include <cassert>
 #include <list>
 #include <memory>
-
 #include "Playback.hh"
 #include "exception.hh"
 #include "display.hh"
@@ -64,7 +65,11 @@ const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond reso
 
 pthread_mutex_t         sleepMutex;
 pthread_cond_t          sleepCond;
-bool                do_exit = false;
+bool                    do_exit = false;
+
+uint64_t memory_frontier = 0;
+const uint64_t prefetch_buffer_size = 1 << 30; // 1 GB
+const uint64_t prefetch_block_size = 1 << 28; // 0.0125 GB
 
 const unsigned long     kAudioWaterlevel = 48000;
 // std::ofstream debugf;
@@ -96,8 +101,6 @@ int main(int argc, char *argv[])
         config.DisplayUsage(exitStatus);
         return EXIT_FAILURE;
     }
-
-    SystemCall( "mlockall", mlockall( MCL_CURRENT | MCL_FUTURE ) );
 
     std::cerr << "Loading file...";
     generator = new Playback(&config);
@@ -162,7 +165,9 @@ Playback::Playback(BMDConfig *config) :
     m_infile(m_config->m_videoInputFile),
     scheduled_timestamp_cpu(),
     scheduled_timestamp_decklink()
-{}
+{
+    memory_frontier = (uint64_t)m_infile(0,1).buffer();
+}
 
 bool Playback::Run()
 {
@@ -174,6 +179,10 @@ bool Playback::Run()
     IDeckLinkConfiguration*         deckLinkConfiguration = NULL;
     IDeckLinkDisplayModeIterator*   displayModeIterator = NULL;
     char*                           displayModeName = NULL;
+
+    Chunk c = m_infile(0, 1);
+    const uint64_t m_infile_start = (uint64_t) c.buffer();
+    uint64_t prefetch_high_water_mark = m_infile_start + prefetch_block_size;
 
     // Get the DeckLink device
     deckLinkIterator = CreateDeckLinkIteratorInstance();
@@ -281,19 +290,42 @@ bool Playback::Run()
 
     success = true;
 
-    // Start.
-    while (!do_exit)
-    {
-        StartRunning();
-        fprintf(stderr, "Starting playback\n");
-
-        pthread_mutex_lock(&sleepMutex);
-        pthread_cond_wait(&sleepCond, &sleepMutex);
-        pthread_mutex_unlock(&sleepMutex);
-
-        fprintf(stderr, "Stopping playback\n");
-        StopRunning();
+    // lock the initial buffer
+    for ( unsigned int i = 0; i < prefetch_buffer_size / prefetch_block_size; i++ ) {
+        SystemCall( "mlock", mlock((uint8_t*) m_infile_start + i * prefetch_block_size, prefetch_block_size) );
     }
+
+    // Start
+    StartRunning();
+
+    while ( !do_exit ) {
+        if ( memory_frontier > prefetch_high_water_mark ) {
+            std::cerr << "START paging in a new block" << std::endl;
+
+            // mlock the next block
+            SystemCall( "mlock", mlock((uint8_t*) prefetch_high_water_mark + (prefetch_buffer_size / prefetch_block_size) * prefetch_block_size, prefetch_block_size) );
+ 
+            // unlock the last block
+            SystemCall( "munlock", munlock((uint8_t*) prefetch_high_water_mark - 2*prefetch_block_size, prefetch_block_size) );
+            
+            prefetch_high_water_mark += prefetch_block_size;
+            std::cerr << "DONE plaging new block" << std::endl;
+        }
+        usleep(1000);
+        //std::cerr << "memory frontier: " << memory_frontier << std::endl;
+    }
+
+    // while (!do_exit)
+    // {
+    //     fprintf(stderr, "Starting playback\n");
+
+    //     pthread_mutex_lock(&sleepMutex);
+    //     pthread_cond_wait(&sleepCond, &sleepMutex);
+    //     pthread_mutex_unlock(&sleepMutex);
+
+    //     fprintf(stderr, "Stopping playback\n");
+    //     StopRunning();
+    // }
 
     printf("\n");
 
@@ -402,6 +434,7 @@ void Playback::ScheduleNextFrame(bool prerolling)
     
     if ( m_totalFramesScheduled < frame_count ) {
         Chunk c = m_infile(m_totalFramesScheduled * frame_size, frame_size);
+        memory_frontier += frame_size;
 
         std::memcpy(frameBytes, c.buffer(), c.size());
         const unsigned int frame_time = (m_config->m_numBlackFrames + m_totalFramesScheduled) * m_frameDuration;
@@ -597,7 +630,7 @@ HRESULT Playback::ScheduledFrameCompleted(IDeckLinkVideoFrame* completedFrame, B
                 scheduled_timestamp_decklink.pop_front();
             }
 
-            std::cout << "Frame #" << m_totalFramesCompleted << " on time." << std::endl;
+            //std::cout << "Frame #" << m_totalFramesCompleted << " on time." << std::endl;
             break;
         }
         case bmdOutputFrameDisplayedLate:
