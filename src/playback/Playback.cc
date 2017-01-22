@@ -182,6 +182,7 @@ bool Playback::Run()
 
     Chunk c = m_infile(0, 1);
     const uint64_t m_infile_start = (uint64_t) c.buffer();
+    const uint64_t file_size = m_infile.size();
     uint64_t prefetch_high_water_mark = m_infile_start + prefetch_block_size;
 
     // Get the DeckLink device
@@ -297,13 +298,17 @@ bool Playback::Run()
 
     // Start
     StartRunning();
-
+    
     while ( !do_exit ) {
-        if ( memory_frontier > prefetch_high_water_mark ) {
+        if ( prefetch_high_water_mark < m_infile_start+file_size && memory_frontier > prefetch_high_water_mark ) {
             std::cerr << "START paging in a new block" << std::endl;
 
             // mlock the next block
-            SystemCall( "mlock", mlock((uint8_t*) prefetch_high_water_mark + (prefetch_buffer_size / prefetch_block_size) * prefetch_block_size, prefetch_block_size) );
+	    uint64_t new_block_starting_location = prefetch_high_water_mark + (prefetch_buffer_size - prefetch_block_size);
+	    uint64_t block_size =  ( new_block_starting_location+prefetch_block_size > m_infile_start+file_size ) ? file_size - new_block_starting_location : prefetch_block_size;
+	    std::cerr << block_size << " " << prefetch_block_size << std::endl;
+	    assert(block_size <= prefetch_block_size);
+            SystemCall( "mlock", mlock((uint8_t*) new_block_starting_location, block_size) );
  
             // unlock the last block
             SystemCall( "munlock", munlock((uint8_t*) prefetch_high_water_mark - 2*prefetch_block_size, prefetch_block_size) );
