@@ -184,6 +184,7 @@ bool Playback::Run()
     const uint64_t m_infile_start = (uint64_t) c.buffer();
     const uint64_t file_size = m_infile.size();
     uint64_t prefetch_high_water_mark = m_infile_start + prefetch_block_size;
+    bool quit = false;
 
     // Get the DeckLink device
     deckLinkIterator = CreateDeckLinkIteratorInstance();
@@ -230,7 +231,7 @@ bool Playback::Run()
     if (result != S_OK)
         goto bail;
 
-    while ((result = displayModeIterator->Next(&m_displayMode)) == S_OK)
+    while((result = displayModeIterator->Next(&m_displayMode)) == S_OK)
     {
         if (idx == 0)
             break;
@@ -300,12 +301,20 @@ bool Playback::Run()
     StartRunning();
     
     while ( !do_exit ) {
-        if ( prefetch_high_water_mark < m_infile_start+file_size && memory_frontier > prefetch_high_water_mark ) {
+      if ( !quit && memory_frontier > prefetch_high_water_mark ) {
             std::cerr << "START paging in a new block" << std::endl;
 
             // mlock the next block
 	    uint64_t new_block_starting_location = prefetch_high_water_mark + (prefetch_buffer_size - prefetch_block_size);
-	    uint64_t block_size =  ( new_block_starting_location+prefetch_block_size > m_infile_start+file_size ) ? file_size - new_block_starting_location : prefetch_block_size;
+	    uint64_t block_size;
+	    if( new_block_starting_location+prefetch_block_size > m_infile_start+file_size ) {
+	      block_size = (m_infile_start + file_size) - new_block_starting_location;
+	      quit = true;
+	    }
+	    else {
+	      block_size = prefetch_block_size;
+	    }
+
 	    std::cerr << block_size << " " << prefetch_block_size << std::endl;
 	    assert(block_size <= prefetch_block_size);
             SystemCall( "mlock", mlock((uint8_t*) new_block_starting_location, block_size) );
@@ -320,8 +329,6 @@ bool Playback::Run()
         //std::cerr << "memory frontier: " << memory_frontier << std::endl;
     }
 
-    usleep(1<23); // 2^23 microsecondso or ~8 seconds
-
     // while (!do_exit)
     // {
     //     fprintf(stderr, "Starting playback\n");
@@ -335,7 +342,6 @@ bool Playback::Run()
     // }
 
     printf("\n");
-
     m_running = false;
 
 bail:
@@ -359,6 +365,8 @@ bail:
 
     if (deckLinkIterator != NULL)
         deckLinkIterator->Release();
+
+    usleep(1<23); // 2^23 microsecondso or ~8 seconds
 
     return success;
 }
