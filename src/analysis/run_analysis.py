@@ -200,10 +200,10 @@ pool = mp.Pool(processes=2)
 pool.map(lambda f: f(), [playback_frame, capture_frames])
             
 print 'performing ssim computations'
-if ( not os.path.exists(os.getcwd() + '/.tmp.csv') ):
-    os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd()))
+if ( not os.path.exists(os.getcwd() + '/.ssim.log') ):
+    os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .ssim.log' % (os.getcwd(), os.getcwd()))
 
-ssim_lines = map( lambda x: x.split() , open('.tmp.csv', 'r').read().strip().split('\n')[:-1] )
+ssim_lines = map( lambda x: x.split() , open('.ssim.log', 'r').read().strip().split('\n')[:-1] )
 
 ssim_results = []
 for line in ssim_lines:
@@ -239,6 +239,6 @@ with open(RESULTS_LOG, 'w') as logfile:
                       str(ssim[2]) + ',' + 
                       str(ssim[3])[:-1] + '\n')
 
-# shutil.rmtree('.tmp.csv')
+# shutil.rmtree('.ssim.log')
 # shutil.rmtree(os.getcwd() + '/' + 'capture-frames')
 # shutil.rmtree(os.getcwd() + '/' + 'playback-frames')
