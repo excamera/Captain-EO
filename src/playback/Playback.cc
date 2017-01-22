@@ -311,7 +311,7 @@ bool Playback::Run()
             prefetch_high_water_mark += prefetch_block_size;
             std::cerr << "DONE plaging new block" << std::endl;
         }
-        usleep(1000);
+        usleep(100);
         //std::cerr << "memory frontier: " << memory_frontier << std::endl;
     }
 

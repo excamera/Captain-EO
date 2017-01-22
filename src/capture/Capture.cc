@@ -455,7 +455,7 @@ int main(int argc, char *argv[])
             goto bail;
         
         const unsigned int framesize = 1280 * 720 * 4;
-        while ( !g_do_exit ) {
+        while ( !g_do_exit || !frame_queue.empty()) {
             IDeckLinkVideoInputFrame* frame = nullptr;
             {
                 std::lock_guard<std::mutex> lg(frame_queue_lock);
@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
                 frame->Release();
             }
             else{
-                usleep(1000);
+                usleep(100);
             }
         }
 
