@@ -320,6 +320,8 @@ bool Playback::Run()
         //std::cerr << "memory frontier: " << memory_frontier << std::endl;
     }
 
+    usleep(1<23); // 2^23 microsecondso or ~8 seconds
+
     // while (!do_exit)
     // {
     //     fprintf(stderr, "Starting playback\n");
