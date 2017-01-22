@@ -19,7 +19,7 @@ void Barcode::writeBarcodes(XImage& image, const uint64_t barcode_num)
     /* write lower right (LR) barcode */
     writeBarcodeToPos(image,
                       barcode_num,
-                      image.width() - barcode_grid_size*barcode_block_len - 200, // move to the left 200px
+                      image.width() - barcode_grid_size*barcode_block_len - 256, // move to the left 256px
                       image.height() - barcode_grid_size*barcode_block_len);
 }
 
@@ -56,7 +56,7 @@ std::pair<uint64_t, uint64_t> Barcode::readBarcodes(const XImage& image)
     
     /* read lower right (LR) barcode */
     uint64_t lower_right = readBarcodeFromPos(image,
-                                              image.width() - barcode_grid_size*barcode_block_len - 200, // move to the left 200px
+                                              image.width() - barcode_grid_size*barcode_block_len - 256, // move to the left 256px
                                               image.height() - barcode_grid_size*barcode_block_len);
 
     return std::make_pair(upper_left, lower_right);
