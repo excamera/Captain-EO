@@ -1,15 +1,15 @@
 #!/bin/bash -e
 
 readonly NUM_BLACK_FRAME=3600 # 1 minute of black frames at 60Hz
-#readonly NUM_BLACK_FRAME=0 # 1 minute of black frames at 60Hz
+#readonly NUM_BLACK_FRAME=0
 
 SCRIPT_FILEPATH=$(readlink -e ${BASH_SOURCE[0]})
 SCRIPT_DIRPATH=$(dirname $SCRIPT_FILEPATH)
 PLAYBACK_BINARY=$SCRIPT_DIRPATH/../src/playback/playback
 
 # check params
-if [[ -z $1 || -z $2 ]]; then
-    echo "Usage: $0 INPUT_VIDEO OUTPUT_LOGFILE NUM_BLACK_FRAMES"
+if [[ -z $1 || -z $2 || -z $3 || -z $4 ]]; then
+    echo "Usage: $0 INPUT_VIDEO OUTPUT_LOGFILE NUM_BLACK_FRAMES UPLINK_TRACE DOWNLINK_TRACE"
     echo
     exit -1
 fi
@@ -34,8 +34,8 @@ touch $2
 OUTPUT_LOG_FILEPATH=$(readlink -e $2)
 
 nice -n -15 $PLAYBACK_BINARY -d 0 -m 14 -p 3 -v $INPUT_VIDEO_FILEPATH -l $OUTPUT_LOG_FILEPATH \
-       -u /home/captaineo/salsify-results/traces/goodbad.up \
-       -n /home/captaineo/salsify-results/traces/goodbad.down \
+       -u $3 \
+       -n $4 \
        -k uplink.log \
        -j downlink.log \
        -b $NUM_BLACK_FRAME
