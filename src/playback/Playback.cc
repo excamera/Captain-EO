@@ -323,7 +323,7 @@ bool Playback::Run()
             SystemCall( "munlock", munlock((uint8_t*) prefetch_high_water_mark - 2*prefetch_block_size, prefetch_block_size) );
             
             prefetch_high_water_mark += prefetch_block_size;
-            std::cerr << "DONE plaging new block" << std::endl;
+            std::cerr << "DONE paging new block" << std::endl;
         }
         usleep(100);
         //std::cerr << "memory frontier: " << memory_frontier << std::endl;
