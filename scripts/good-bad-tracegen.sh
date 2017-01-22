@@ -14,7 +14,7 @@ sub Mbps_to_ppms ($) {
 my $good_Mbps = 2;
 my $good_packets_per_millisecond = Mbps_to_ppms $good_Mbps;
 
-while ( $timestamp <= 60e3 ) {
+while ( $timestamp <= 120e3 ) {
   print int( $timestamp ), "\n";
   $timestamp += 1 / $good_packets_per_millisecond;
 }
@@ -22,7 +22,7 @@ while ( $timestamp <= 60e3 ) {
 my $bad_Mbps = 0.2;
 my $bad_packets_per_millisecond = Mbps_to_ppms $bad_Mbps;
 
-while ( $timestamp <= 120e3 ) {
+while ( $timestamp <= 240e3 ) {
   print int( $timestamp ), "\n";
   $timestamp += 1 / $bad_packets_per_millisecond;
 }
