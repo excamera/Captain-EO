@@ -1,4 +1,4 @@
-#!/usr/bin/env python -u
+#!/usr/bin/env python
 
 import datetime
 import os
@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import pickle
 
 WIDTH = 1280
 HEIGHT = 720
@@ -128,12 +129,14 @@ RESULTS_LOG = sys.argv[5]
 ################################################################################
 
 # parse playback log
+print "parsing playback log"
 playback_log = []
 for line in get_lines_from_log_file ( PLAYBACK_LOG ):
     p_entry = PlaybackLogEntry ( *[int(item) for item in line.split(',')] )
     playback_log.append ( p_entry )
 
 # parse capture log
+print "parsing capture log"
 capture_log = []
 for line in get_lines_from_log_file ( CAPTURE_LOG ):
     c_entry = CaptureLogEntry( *[int(item) for item in line.split(',')] )
@@ -143,24 +146,29 @@ for line in get_lines_from_log_file ( CAPTURE_LOG ):
 # create a correspondence between the sent and recieved frames
 # NOTE: this assumes code assumes that all frames have a unique barcode. 
 ################################################################################
-playback_capture_frame_correspondence = []
-capture_index = -1
-for playback_frame in playback_log:
+print "producing correspondence between playback and capture frames"
+if ( not os.path.exists(os.getcwd() + '/frame_correspondence.pickle') ):
+    playback_capture_frame_correspondence = []
+    capture_index = -1
+    for playback_frame in playback_log:
 
-    # try to find a corresponding frame in the capture log
-    ul = playback_frame.upper_left_barcode
-    matches = filter ( lambda x: x.upper_left_barcode == ul, capture_log )
+        # try to find a corresponding frame in the capture log
+        ul = playback_frame.upper_left_barcode
+        matches = filter ( lambda x: x.upper_left_barcode == ul, capture_log )
 
-    if( len(matches) == 0 ):
-        playback_capture_frame_correspondence.append( (playback_frame, None) ) # no frame with matching barcode found
+        if( len(matches) == 0 ):
+            playback_capture_frame_correspondence.append( (playback_frame, None) ) # no frame with matching barcode found
 
-    else:
-        capture_frame = matches[0] # get only the first match; assume repeated frames are the same
-        assert ( capture_index  < capture_frame.frame_index ) # never go backwards
-        capture_index = capture_frame.frame_index
+        else:
+            capture_frame = matches[0] # get only the first match; assume repeated frames are the same
+            assert ( capture_index  < capture_frame.frame_index ) # never go backwards
+            capture_index = capture_frame.frame_index
     
-        playback_capture_frame_correspondence.append( (playback_frame, capture_frame) )
+            playback_capture_frame_correspondence.append( (playback_frame, capture_frame) )
 
+    pickle.dump(playback_capture_frame_correspondence, open(os.getcwd() + '/frame_correspondence.pickle', 'wb'))
+
+playback_capture_frame_correspondence = pickle.load( open( os.getcwd() + '/frame_correspondence.pickle', "rb" ) )
 assert( len(playback_log) == len(playback_capture_frame_correspondence) )
 print 'frames received:', len ( filter(lambda x: x[1] is not None, playback_capture_frame_correspondence) )
 print 'frames dropped:', len ( filter(lambda x: x[1] is None, playback_capture_frame_correspondence) )
@@ -186,7 +194,7 @@ if ( not os.path.exists(os.getcwd() + '/capture-frames/capture.y4m') ):
 
 print 'performing ssim computations'
 if ( not os.path.exists(os.getcwd() + '/.tmp.csv') ):
-    os.system('%s/../Captain-Eo/third_party/daala_tools/daala/dump_ssim -r -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd(), os.getcwd()))
+    os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -r -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd()))
 
 ssim_lines = map( lambda x: x.split() , open('.tmp.csv', 'r').read().strip().split('\n')[:-1] )
 
