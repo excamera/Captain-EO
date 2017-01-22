@@ -194,7 +194,7 @@ if ( not os.path.exists(os.getcwd() + '/capture-frames/capture.y4m') ):
 
 print 'performing ssim computations'
 if ( not os.path.exists(os.getcwd() + '/.tmp.csv') ):
-    os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -r -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd()))
+    os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd()))
 
 ssim_lines = map( lambda x: x.split() , open('.tmp.csv', 'r').read().strip().split('\n')[:-1] )
 
