@@ -96,3 +96,23 @@ uint64_t Barcode::readBarcodeFromPos(const RGBImage& image,
 
     return frame_num;
 }
+
+std::pair<uint64_t, uint64_t> Barcode::readBarcodes(const UYVYImage& image)
+{
+  /* read upper left (UL) barcode */
+  uint64_t upper_left = readBarcodeFromPos(image,
+                                           0,
+                                           0);
+
+  /* read lower right (LR) barcode */
+  uint64_t lower_right = readBarcodeFromPos(image,
+                                            image.width() - barcode_grid_size*barcode_block_len - 256, // move to the left 256px
+                                            image.height() - barcode_grid_size*barcode_block_len);
+
+  return std::make_pair(upper_left, lower_right);
+}
+
+uint64_t Barcode::readBarcodeFromPos(const UYVYImage& image, const unsigned int xpos, const unsigned int ypos)
+{
+  return image.width() + xpos + ypos;
+}
