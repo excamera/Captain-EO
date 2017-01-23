@@ -346,3 +346,6 @@ PixelType & XImage<PixelType>::pixel( const unsigned int column, const unsigned 
 
   return image_.at( row * width() + column );
 }
+
+template class XImage<RGBPixel>;
+template class XImage<UYVYPixel>;

@@ -114,5 +114,30 @@ std::pair<uint64_t, uint64_t> Barcode::readBarcodes(const UYVYImage& image)
 
 uint64_t Barcode::readBarcodeFromPos(const UYVYImage& image, const unsigned int xpos, const unsigned int ypos)
 {
-  return image.width() + xpos + ypos;
+  uint64_t frame_num = 0;
+
+  for (unsigned int i = 0; i < barcode_grid_size; i++) {
+      for (unsigned int j = 0; j < barcode_grid_size; j++) {
+          const unsigned int x_offset = barcode_block_len * i + xpos;
+          const unsigned int y_offset = barcode_block_len * j + ypos;
+
+
+          /* read average value of barcode block */
+          double average = 0;
+          for (unsigned int y = y_offset; y < y_offset + barcode_block_len; y++) {
+              for (unsigned int x = x_offset; x < x_offset + barcode_block_len; x++) {
+                  average += image.pixel(x, y).y;
+              }
+          }
+
+          average /= (barcode_block_len * barcode_block_len);
+
+          static_assert( sizeof(uint8_t) == 1, "uint8_t size must be 1 byte" );
+
+          const bool bit_set = average < 128;
+          frame_num |= bit_set ? (((uint64_t)1) << (j*barcode_grid_size + i)) : 0;
+      }
+  }
+
+  return frame_num;
 }
