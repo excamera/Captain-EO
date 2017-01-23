@@ -122,7 +122,7 @@ struct RGBPixel
 
 struct UYVYPixel
 {
-  uint8_t u0, y1, v0, y2;
+  uint8_t cbcr, y;
 };
 
 template<class PixelType>

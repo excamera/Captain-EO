@@ -313,13 +313,13 @@ XImage<RGBPixel>::XImage( XPixmap & pixmap )
 {}
 
 
-template<>
-XImage<RGBPixel>::XImage( const Chunk & image, const unsigned int width, const unsigned int height )
+template<class PixelType>
+XImage<PixelType>::XImage( const Chunk & image, const unsigned int width, const unsigned int height )
   : width_( width ),
     height_( height ),
     image_()
 {
-  if ( image.size() != width * height * sizeof( RGBPixel ) ) {
+  if ( image.size() != width * height * sizeof( PixelType ) ) {
     throw runtime_error( "XImage: invalid chunk size" );
   }
 
@@ -327,23 +327,8 @@ XImage<RGBPixel>::XImage( const Chunk & image, const unsigned int width, const u
   memcpy( image_.data(), image.buffer(), image.size() );
 }
 
-template<>
-XImage<UYVYPixel>::XImage( const Chunk & image, const unsigned int width, const unsigned int height )
-  : width_( width ),
-    height_( height ),
-    image_()
-{
-  if ( image.size() != width * height * sizeof( UYVYPixel ) / 2 ) {
-    throw runtime_error( "XImage: invalid chunk size" );
-  }
-
-  image_.resize( width * height / 2 );
-  memcpy( image_.data(), image.buffer(), image.size() );
-}
-
-
-template<>
-const RGBPixel & XImage<RGBPixel>::pixel( const unsigned int column, const unsigned int row ) const
+template<class PixelType>
+const PixelType & XImage<PixelType>::pixel( const unsigned int column, const unsigned int row ) const
 {
   if ( column >= width_ or row >= height_ ) {
     throw out_of_range( "attempted access to pixel outside image" );
@@ -352,32 +337,12 @@ const RGBPixel & XImage<RGBPixel>::pixel( const unsigned int column, const unsig
   return image_.at( row * width() + column );
 }
 
-template<>
-RGBPixel & XImage<RGBPixel>::pixel( const unsigned int column, const unsigned int row )
+template<class PixelType>
+PixelType & XImage<PixelType>::pixel( const unsigned int column, const unsigned int row )
 {
   if ( column >= width_ or row >= height_ ) {
     throw out_of_range( "attempted access to pixel outside image" );
   }
 
   return image_.at( row * width() + column );
-}
-
-template<>
-const UYVYPixel & XImage<UYVYPixel>::pixel( const unsigned int column, const unsigned int row ) const
-{
-  if ( column >= width_ or row >= height_ ) {
-    throw out_of_range( "attempted access to pixel outside image" );
-  }
-
-  return image_.at( row * width() / 2 + column );
-}
-
-template<>
-UYVYPixel & XImage<UYVYPixel>::pixel( const unsigned int column, const unsigned int row )
-{
-  if ( column >= width_ or row >= height_ ) {
-    throw out_of_range( "attempted access to pixel outside image" );
-  }
-
-  return image_.at( row * width() / 2 + column );
 }
