@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import pickle
+import multiprocessing as mp
 
 WIDTH = 1280
 HEIGHT = 720
@@ -179,19 +180,25 @@ print 'frames dropped:', len ( filter(lambda x: x[1] is None, playback_capture_f
 
 # convert video to a form where the ssim can be computed
 print 'converting playback frames'
-if ( not os.path.exists(os.getcwd() + '/playback-frames/playback.y4m') ):
-    playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
-    with open(PLAYBACK_VIDEO, 'r') as out_video:
-        playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
-        playbackConverter.convert()
+def playback_frames():
+    if ( not os.path.exists(os.getcwd() + '/playback-frames/playback.y4m') ):
+        playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
+        with open(PLAYBACK_VIDEO, 'r') as out_video:
+            playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
+            playbackConverter.convert()
 
 print 'converting capture frames'
-if ( not os.path.exists(os.getcwd() + '/capture-frames/capture.y4m') ):
-    capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
-    with open(CAPTURE_VIDEO, 'r') as in_video:
-        captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
-        captureConverter.convert()
+def capture_frames():
+    if ( not os.path.exists(os.getcwd() + '/capture-frames/capture.y4m') ):
+        capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
+        with open(CAPTURE_VIDEO, 'r') as in_video:
+            captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
+            captureConverter.convert()
 
+# run the functions
+pool = mp.Pool(processes=2)
+pool.map(lambda f: f(), [playback_frame, capture_frames])
+            
 print 'performing ssim computations'
 if ( not os.path.exists(os.getcwd() + '/.tmp.csv') ):
     os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .tmp.csv' % (os.getcwd(), os.getcwd()))
