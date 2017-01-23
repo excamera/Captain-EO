@@ -33,7 +33,7 @@ int main( int argc, char *argv[] )
   File input { argv[ 1 ] };
   const uint16_t width = paranoid_atoi( argv[ 2 ] );
   const uint16_t height = paranoid_atoi( argv[ 3 ] );
-  const size_t frame_length = width * height * sizeof( RGBPixel );
+  const size_t frame_length = width * height * sizeof( UYVYPixel );
 
   const size_t frame_count = input.size() / frame_length;
 

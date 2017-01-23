@@ -147,6 +147,9 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 
             videoFrame->GetBytes(&frameBytes);
             Chunk chunk((uint8_t*)frameBytes, framesize);
+
+            pair<uint64_t, uint64_t> barcodes { 0, 1 };
+
             RGBImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
             auto barcodes = Barcode::readBarcodes(img);
 
