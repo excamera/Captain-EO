@@ -41,11 +41,11 @@ int main( int argc, char *argv[] )
   if ( input.size() != frame_count * frame_length ) {
     throw runtime_error( "file size is not multiple of frame size" );
   } else {
-    cerr << "# Writing barcodes to the file: " << argv[ 1 ] <<  ".\n";    
+    cerr << "# Writing barcodes to the file: " << argv[ 1 ] <<  ".\n";
     cerr << "# Found " << frame_count << " frames of size " << width << "x" << height << ".\n";
 
     std::time_t result = std::time(nullptr);
-    cerr << "# Time stamp: " << std::asctime(std::localtime(&result));    
+    cerr << "# Time stamp: " << std::asctime(std::localtime(&result));
   }
 
   /* print csv header */
@@ -57,20 +57,20 @@ int main( int argc, char *argv[] )
   random_device rd;
   mt19937 generator(rd());
   uniform_int_distribution<uint64_t> uniform_distribution(0, numeric_limits<uint64_t>::max());
-  
+
   /* iterate through frames and add barcode to each one */
   for ( unsigned int frame_no = 0; frame_no < frame_count; frame_no++ ) {
     const Chunk this_frame_chunk = input( frame_no * frame_length, frame_length );
-    XImage this_frame { this_frame_chunk, width, height };
+    RGBImage this_frame { this_frame_chunk, width, height };
 
     /* generate random barcode and add it to the frame */
     uint64_t barcode_num = uniform_distribution(generator);
     Barcode::writeBarcodes( this_frame, barcode_num );
     cerr << frame_no << "," << barcode_num << "\n";
-    
+
     /* print out the image */
     stdout.write( this_frame.chunk() );
   }
-  
+
   return EXIT_SUCCESS;
 }

@@ -40,27 +40,27 @@ int main( int argc, char *argv[] )
   if ( input.size() != frame_count * frame_length ) {
     throw runtime_error( "file size is not multiple of frame size" );
   } else {
-    cerr << "# Reading barcodes from the file: " << argv[ 1 ] <<  ".\n";    
+    cerr << "# Reading barcodes from the file: " << argv[ 1 ] <<  ".\n";
     cerr << "# Found " << frame_count << " frames of size " << width << "x" << height << ".\n";
 
     std::time_t result = std::time(nullptr);
-    cerr << "# Time stamp: " << std::asctime(std::localtime(&result));    
+    cerr << "# Time stamp: " << std::asctime(std::localtime(&result));
   }
 
   /* print csv header */
   cerr << "# frame_num" << "," << "upper_left_barcode" << "," << "lower_right_barcode" << "\n";
-  
+
   FileDescriptor stdout { STDOUT_FILENO };
-  
+
   /* iterate through frames and read barcode from each one */
   for ( unsigned int frame_no = 0; frame_no < frame_count; frame_no++ ) {
     const Chunk this_frame_chunk = input( frame_no * frame_length, frame_length );
-    XImage this_frame { this_frame_chunk, width, height };
+    RGBImage this_frame { this_frame_chunk, width, height };
 
     /* read barcode */
     pair<uint64_t, uint64_t> barcodes = Barcode::readBarcodes( this_frame );
     cerr << frame_no << "," << barcodes.first << "," << barcodes.second << "\n";
   }
-  
+
   return EXIT_SUCCESS;
 }

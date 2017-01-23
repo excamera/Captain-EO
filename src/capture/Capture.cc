@@ -55,7 +55,7 @@ using std::chrono::microseconds;
 std::queue<IDeckLinkVideoInputFrame*> frame_queue;
 std::mutex frame_queue_lock;
 
- const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */ 
+ const BMDTimeScale ticks_per_second = (BMDTimeScale)1000000; /* microsecond resolution */
 static BMDTimeScale prev_frame_recieved_time = (BMDTimeScale)0;
 
 static pthread_mutex_t  g_sleepMutex;
@@ -71,7 +71,7 @@ static std::ofstream    logfile;
 static int64_t  g_frameCount = 0;
 static uint64_t g_validFrameCount = 0;
 
-DeckLinkCaptureDelegate::DeckLinkCaptureDelegate() : 
+DeckLinkCaptureDelegate::DeckLinkCaptureDelegate() :
     m_refCount(1)
 {
 }
@@ -100,37 +100,37 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 
     /* IMPORTANT: get the frame arrived timestamp */
     time_point<high_resolution_clock> tp = high_resolution_clock::now();
-    
+
     BMDTimeValue decklink_hardware_timestamp;
     BMDTimeValue decklink_time_in_frame;
     BMDTimeValue decklink_ticks_per_frame;
     HRESULT ret;
-    ret = g_deckLinkInput->GetHardwareReferenceClock(ticks_per_second, 
+    ret = g_deckLinkInput->GetHardwareReferenceClock(ticks_per_second,
                                                      &decklink_hardware_timestamp,
                                                      &decklink_time_in_frame,
                                                      &decklink_ticks_per_frame);
-            
+
     BMDTimeValue decklink_frame_reference_timestamp;
     BMDTimeValue decklink_frame_reference_duration;
     if( (ret = videoFrame->GetHardwareReferenceTimestamp(ticks_per_second,
                                                          &decklink_frame_reference_timestamp,
                                                          &decklink_frame_reference_duration) ) != S_OK ) {
-        
+
         std::cerr << "GetHardwareReferenceTimestamp: could not get HardwareReferenceTimestamp for frame timestamp" << std::endl;
         return ret;
     }
-    
+
     if( prev_frame_recieved_time == 0 ){
         prev_frame_recieved_time = decklink_frame_reference_timestamp;
     }
     else if( decklink_frame_reference_timestamp - prev_frame_recieved_time > 20000 ){
         std::cerr << "Frame was late! Delay was: " << decklink_frame_reference_timestamp - prev_frame_recieved_time << std::endl;
-        throw std::runtime_error("Capture was LATE when capturing a frame.\n");            
+        throw std::runtime_error("Capture was LATE when capturing a frame.\n");
     }
     else{
         prev_frame_recieved_time = decklink_frame_reference_timestamp;
-    } 
-  
+    }
+
     // Handle Video Frame
     if (videoFrame)
     {
@@ -147,32 +147,32 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 
             videoFrame->GetBytes(&frameBytes);
             Chunk chunk((uint8_t*)frameBytes, framesize);
-            XImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
+            RGBImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
             auto barcodes = Barcode::readBarcodes(img);
-            
+
             printf("Frame received (#%lu) - %s - Size: %li bytes\n",
                    g_frameCount,
                    "Valid Frame",
                    framesize);
 
             /* IMPORTANT: log the timestamps  */
-            if (barcodes.first != 0xFFFFFFFFFFFFFFFF 
+            if (barcodes.first != 0xFFFFFFFFFFFFFFFF
                 || barcodes.second != 0xFFFFFFFFFFFFFFFF) {
                 if (logfile.is_open())
-                    logfile << g_validFrameCount << "," 
+                    logfile << g_validFrameCount << ","
                             << barcodes.first << "," << barcodes.second << ","
                             << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
                             << decklink_hardware_timestamp << ","
                             << decklink_frame_reference_timestamp << ","
-                            << decklink_frame_reference_duration 
+                            << decklink_frame_reference_duration
                             << std::endl;
                 else
-                    std::cout   << g_validFrameCount << "," 
+                    std::cout   << g_validFrameCount << ","
                                 << barcodes.first << "," << barcodes.second << ","
                                 << time_point_cast<microseconds>(tp).time_since_epoch().count() << ","
                                 << decklink_hardware_timestamp << ","
                                 << decklink_frame_reference_timestamp << ","
-                                << decklink_frame_reference_duration 
+                                << decklink_frame_reference_duration
                                 << std::endl;
                 g_validFrameCount++;
 
@@ -182,7 +182,7 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
                     videoFrame->AddRef();
                     frame_queue.push(videoFrame);
                     // ssize_t ret = write(g_videoOutputFile, frameBytes, framesize);
-                    // if (ret < 0) 
+                    // if (ret < 0)
                     //     fprintf(stderr, "Cannot write to file.\n");
                 }
             }
@@ -239,15 +239,15 @@ bail:
     return S_OK;
 }
 
-class DeckLinkCapturePreview : public DeckLinkCaptureDelegate 
+class DeckLinkCapturePreview : public DeckLinkCaptureDelegate
 {
 public:
-    DeckLinkCapturePreview(int width, int height) : 
+    DeckLinkCapturePreview(int width, int height) :
         DeckLinkCaptureDelegate(),
         window(width, height),
         picture(window),
         image(picture),
-        gc(picture) 
+        gc(picture)
     {
         window.set_name( "Capture Preview" );
         window.map();
@@ -262,7 +262,7 @@ public:
 private:
     XWindow             window;
     XPixmap             picture;
-    XImage              image;
+    RGBImage            image;
     GraphicsContext     gc;
 
 };
@@ -453,7 +453,7 @@ int main(int argc, char *argv[])
         result = g_deckLinkInput->StartStreams();
         if (result != S_OK)
             goto bail;
-        
+
         const unsigned int framesize = 1280 * 720 * 4;
         while ( !g_do_exit || !frame_queue.empty()) {
             IDeckLinkVideoInputFrame* frame = nullptr;
@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
                 frame->GetBytes((void**)&buffer);
 
                 ssize_t ret = write(g_videoOutputFile, buffer, framesize);
-                if (ret < 0) 
+                if (ret < 0)
                     fprintf(stderr, "Cannot write to file.\n");
 
                 frame->Release();

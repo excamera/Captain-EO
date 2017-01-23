@@ -84,7 +84,7 @@ public:
   const xcb_gcontext_t & xcb_gc() const { return gc_; }
 };
 
-class XImage;
+template<class PixelType> class XImage;
 
 class XPixmap : public XCBObject
 {
@@ -107,7 +107,8 @@ public:
   std::pair<unsigned int, unsigned int> size() const { return size_; }
 
   /* put an image on the pixmap */
-  void put( const XImage & image, const GraphicsContext & gc );
+  template<class PixelType>
+  void put( const XImage<PixelType> & image, const GraphicsContext & gc );
 
   /* prevent copying */
   XPixmap( const XPixmap & other ) = delete;
@@ -119,25 +120,34 @@ struct RGBPixel
   uint8_t blue, green, red, xxx;
 };
 
+struct UYVYPixel
+{
+  uint8_t u0, y1, v0, y2;
+};
+
+template<class PixelType>
 class XImage
 {
 private:
   unsigned int width_, height_;
-  std::vector<RGBPixel> image_;
+  std::vector<PixelType> image_;
 
 public:
   XImage( XPixmap & pixmap );
   XImage( const Chunk & image, const unsigned int width, const unsigned int height );
 
-  const RGBPixel & pixel( const unsigned int column, const unsigned int row ) const;
-  RGBPixel & pixel( const unsigned int column, const unsigned int row );
-  const uint8_t * data() const { return &image_.at( 0 ).blue; }
-  uint8_t * data_unsafe() { return &image_.at( 0 ).blue; }
+  const PixelType & pixel( const unsigned int column, const unsigned int row ) const;
+  PixelType & pixel( const unsigned int column, const unsigned int row );
+  const uint8_t * data() const { return reinterpret_cast<const uint8_t*>( &image_.at( 0 ) ); }
+  uint8_t * data_unsafe() { return reinterpret_cast<uint8_t*>( &image_.at( 0 ) ); };
 
-  Chunk chunk() const { return Chunk( data(), image_.size() * sizeof( RGBPixel ) ); }
+  Chunk chunk() const { return Chunk( data(), image_.size() * sizeof( PixelType ) ); }
 
   unsigned int width() const { return width_; }
   unsigned int height() const { return height_; }
 };
+
+using RGBImage = XImage<RGBPixel>;
+using UYVYImage = XImage<UYVYPixel>;
 
 #endif

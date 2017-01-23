@@ -17,7 +17,7 @@ int main()
   XPixmap picture( window );
 
   /* in our program (the X client), construct an image */
-  XImage image( picture );
+  RGBImage image( picture );
   GraphicsContext gc( picture );
 
   /* draw alternating all-red or all-blue */
