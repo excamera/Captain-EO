@@ -30,7 +30,7 @@ class PlaybackLogEntry:
                  decklink_frame_completed_reference_time):
         
         print frame_index
-        assert(upper_left_barcode == lower_right_barcode) # playback frame cannot be corrupted
+        assert(upper_left_barcode == lower_right_barcode) # playback frames are not allowed to be corrupted
         assert(cpu_time_scheduled < cpu_time_completed)
         assert(decklink_hardwaretime_scheduled < decklink_hardwaretime_completed_callback)
 
@@ -59,10 +59,10 @@ class CaptureLogEntry:
                  decklink_frame_hardware_reference_duration):
         
         print frame_index
-        assert (upper_left_barcode == lower_right_barcode)
+        assert (upper_left_barcode == lower_right_barcode) # corrupted capture barcode
 
         self.frame_index = frame_index
-
+        
         self.upper_left_barcode = upper_left_barcode
         self.lower_right_barcode = lower_right_barcode
 
@@ -138,10 +138,21 @@ for line in get_lines_from_log_file ( PLAYBACK_LOG ):
 
 # parse capture log
 print "parsing capture log"
+capture_corrupted_barcodes = 0
 capture_log = []
 for line in get_lines_from_log_file ( CAPTURE_LOG ):
-    c_entry = CaptureLogEntry( *[int(item) for item in line.split(',')] )
+
+    # skip frames where  the barcodes did not match
+    line_eles = line.split(',')
+    if ( line_eles[1] != line_eles[2] ):
+        print "barcode corrupted"
+        capture_corrupted_barcodes += 1
+        continue
+        
+    c_entry = CaptureLogEntry( *[int(item) for item in line_eles] )
     capture_log.append(c_entry)
+
+print "There were", capture_corrupted_barcodes, "barcodes from the captured video that could not be recovered"
     
 ################################################################################
 # create a correspondence between the sent and recieved frames
@@ -161,10 +172,22 @@ if ( not os.path.exists(os.getcwd() + '/frame_correspondence.pickle') ):
             playback_capture_frame_correspondence.append( (playback_frame, None) ) # no frame with matching barcode found
 
         else:
-            capture_frame = matches[0] # get only the first match; assume repeated frames are the same
-            assert ( capture_index  < capture_frame.frame_index ) # never go backwards
+            idx = 0 
+            capture_frame = matches[0]
+            while ( capture_index > capture_frame.frame_index and idx < len(matches) ):
+                print len(matches)
+                print capture_index
+                print capture_frame.frame_index
+
+                capture_frame = matches[idx]
+                idx += 1
+
+            if ( capture_index > capture_frame.frame_index ):
+                print "Warning: capture frames came out of order. Skipping."
+                playback_capture_frame_correspondence.append( (playback_frame, None) ) # skip frame if you would go backwards
+                continue
+
             capture_index = capture_frame.frame_index
-    
             playback_capture_frame_correspondence.append( (playback_frame, capture_frame) )
 
     pickle.dump(playback_capture_frame_correspondence, open(os.getcwd() + '/frame_correspondence.pickle', 'wb'))
@@ -203,7 +226,7 @@ print 'performing ssim computations'
 if ( not os.path.exists(os.getcwd() + '/.ssim.log') ):
     os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .ssim.log' % (os.getcwd(), os.getcwd()))
 
-ssim_lines = map( lambda x: x.split() , open('.ssim.log', 'r').read().strip().split('\n')[:-1] )
+ssim_lines = map( lambda x: x.split() , open(os.getcwd() + '/.ssim.log', 'r').read().strip().split('\n')[:-1] )
 
 ssim_results = []
 for line in ssim_lines:
@@ -226,7 +249,7 @@ with open(RESULTS_LOG, 'w') as logfile:
     for frame, ssim in zip(filter(lambda x: x[1] is not None, playback_capture_frame_correspondence), ssim_results ):
         playback_frame = frame[0]
         capture_frame = frame[1]
-
+        
         logfile.write(str(playback_frame.frame_index) + ',' + 
                       str(playback_frame.cpu_time_completed) + ',' +
                       str(capture_frame.cpu_timestamp) + ',' + 
