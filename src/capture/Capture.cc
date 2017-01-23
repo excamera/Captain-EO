@@ -148,10 +148,16 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             videoFrame->GetBytes(&frameBytes);
             Chunk chunk((uint8_t*)frameBytes, framesize);
 
-            pair<uint64_t, uint64_t> barcodes { 0, 1 };
+            std::pair<uint64_t, uint64_t> barcodes { 0, 1 };
 
-            RGBImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
-            auto barcodes = Barcode::readBarcodes(img);
+            if ( g_config.m_pixelFormat == bmdFormat8BitYUV ) {
+              UYVYImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
+              barcodes = Barcode::readBarcodes(img);
+            }
+            else if ( g_config.m_pixelFormat == bmdFormat8BitBGRA ) {
+              RGBImage img(chunk, videoFrame->GetWidth(), videoFrame->GetHeight());
+              barcodes = Barcode::readBarcodes(img);
+            }
 
             printf("Frame received (#%lu) - %s - Size: %li bytes\n",
                    g_frameCount,
@@ -241,35 +247,6 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFormatChanged(BMDVideoInputFormatChan
 bail:
     return S_OK;
 }
-
-class DeckLinkCapturePreview : public DeckLinkCaptureDelegate
-{
-public:
-    DeckLinkCapturePreview(int width, int height) :
-        DeckLinkCaptureDelegate(),
-        window(width, height),
-        picture(window),
-        image(picture),
-        gc(picture)
-    {
-        window.set_name( "Capture Preview" );
-        window.map();
-    }
-
-    virtual void preview(void* frame_bytes, int frame_size) {
-        memcpy(image.data_unsafe(), frame_bytes, frame_size);
-        picture.put( image, gc );
-        window.present( picture, 0, 0 );
-    }
-
-private:
-    XWindow             window;
-    XPixmap             picture;
-    RGBImage            image;
-    GraphicsContext     gc;
-
-};
-
 
 static void sigfunc(int signum)
 {
@@ -409,10 +386,7 @@ int main(int argc, char *argv[])
     g_config.DisplayConfiguration();
 
     // Configure the capture callback
-    if (g_config.m_playback)
-        delegate = new DeckLinkCapturePreview(displayMode->GetWidth(), displayMode->GetHeight());
-    else
-        delegate = new DeckLinkCaptureDelegate();
+    delegate = new DeckLinkCaptureDelegate();
     g_deckLinkInput->SetCallback(delegate);
 
     // Open output files

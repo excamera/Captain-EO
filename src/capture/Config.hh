@@ -50,8 +50,7 @@ public:
 
     const char*             m_videoOutputFile;
     const char*             m_logFilename;
-    bool                    m_playback;
-
+    
 private:
     char*                   m_deckLinkName;
     char*                   m_displayModeName;

@@ -40,7 +40,6 @@ BMDConfig::BMDConfig() :
     m_pixelFormat(bmdFormat8BitBGRA),
     m_videoOutputFile(),
     m_logFilename(),
-    m_playback(false),
     m_deckLinkName(),
     m_displayModeName()
 {
@@ -60,7 +59,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
     int     ch;
     bool    displayHelp = false;
 
-    while ((ch = getopt(argc, argv, "d:hv:m:n:p:il:")) != -1)
+    while ((ch = getopt(argc, argv, "d:hv:m:n:p:l:")) != -1)
     {
         switch (ch)
         {
@@ -92,9 +91,6 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
                         fprintf(stderr, "Invalid argument: Pixel format %d is not valid", atoi(optarg));
                         return false;
                 }
-                break;
-            case 'i':
-                m_playback = true;
                 break;
             case 'l':
                 m_logFilename = optarg;
@@ -392,4 +388,3 @@ const char* BMDConfig::GetPixelFormatName(BMDPixelFormat pixelFormat)
     }
     return "unknown";
 }
-
