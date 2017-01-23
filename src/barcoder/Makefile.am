@@ -12,3 +12,7 @@ barcode_write_LDADD = libbarcode.a ../util/libutil.a ../display/libdisplay.a $(X
 bin_PROGRAMS += barcode-read
 barcode_read_SOURCES = barcode-read.cc
 barcode_read_LDADD = libbarcode.a ../util/libutil.a ../display/libdisplay.a $(XCBPRESENT_LIBS) $(XCB_LIBS)
+
+bin_PROGRAMS += barcode-read-uyvy
+barcode_read_uyvy_SOURCES = barcode-read-uyvy.cc
+barcode_read_uyvy_LDADD = libbarcode.a ../util/libutil.a ../display/libdisplay.a $(XCBPRESENT_LIBS) $(XCB_LIBS)

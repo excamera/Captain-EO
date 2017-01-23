@@ -20,6 +20,7 @@ src/rgb-example/rgb-example
 src/barcoder/barcoder
 src/barcoder/barcode-write
 src/barcoder/barcode-read
+src/barcoder/barcode-read-uyvy
 src/scanner/scanner-test
 
 /INSTALL
