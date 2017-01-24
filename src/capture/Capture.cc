@@ -431,7 +431,6 @@ int main(int argc, char *argv[])
         if (result != S_OK)
             goto bail;
 
-        const unsigned int framesize = 1280 * 720 * 4;
         while ( !g_do_exit || !frame_queue.empty()) {
             IDeckLinkVideoInputFrame* frame = nullptr;
             {
@@ -445,7 +444,7 @@ int main(int argc, char *argv[])
                 uint8_t* buffer = nullptr;
                 frame->GetBytes((void**)&buffer);
 
-                ssize_t ret = write(g_videoOutputFile, buffer, framesize);
+                ssize_t ret = write(g_videoOutputFile, buffer, frame->GetRowBytes() * frame->GetHeight());
                 if (ret < 0)
                     fprintf(stderr, "Cannot write to file.\n");
 
