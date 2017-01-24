@@ -72,7 +72,7 @@ class CaptureLogEntry:
         self.decklink_frame_hardware_reference_time = decklink_frame_hardware_reference_time
         self.decklink_frame_hardware_reference_duration = decklink_frame_hardware_reference_duration
 
-class RGB2Y4M:
+class RGB2Y4M_bgra:
 
     def __init__(self, videofile, frames, dirname, filename, width=1280, height=720, bytesPerPixel=4):
         """
@@ -99,6 +99,45 @@ class RGB2Y4M:
                 rawfile.write(frame)
         #This is bad, change to subprocess.check_call
         os.system("avconv -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format bgra -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 -y %s" %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
+
+def get_lines_from_log_file(log_filename):
+    lines = open(log_filename, 'r').read().split('\n')
+        
+    # remove comment lines
+    lines = filter(lambda line: re.match('^\s*#.*', line) is None, lines)
+
+    # remove blank lines
+    lines = filter(lambda line: re.match('^\s*$', line) is None, lines)
+    
+    return lines
+
+class RGB2Y4M_uyvy422:
+
+    def __init__(self, videofile, frames, dirname, filename, width=1280, height=720, bytesPerPixel=4):
+        """
+        frames should be list of frame index in video
+        """
+        self.video = videofile
+        self.filename = filename
+        self.frames = frames
+        self.dirname = dirname
+        self.width = width
+        self.height = height
+        self.framesize = width * height * bytesPerPixel
+
+    def convert(self):
+        if not os.path.exists(self.dirname):
+            os.mkdir(self.dirname)
+
+        rawfilename = self.dirname + "/" + self.filename + ".raw"
+        print "Appending frames to %s" %rawfilename
+        with open(rawfilename, "wb") as rawfile:
+            for frameidx in sorted(self.frames):
+                self.video.seek(frameidx * self.framesize)
+                frame = self.video.read(self.framesize)
+                rawfile.write(frame)
+        #This is bad, change to subprocess.check_call
+        os.system("avconv -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format uyvy422 -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 -y %s" %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
 
 def get_lines_from_log_file(log_filename):
     lines = open(log_filename, 'r').read().split('\n')
@@ -206,7 +245,7 @@ def playback_frames():
     if ( not os.path.exists(os.getcwd() + '/playback-frames/playback.y4m') ):
         playback_frames = [frame[0].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
         with open(PLAYBACK_VIDEO, 'r') as out_video:
-            playbackConverter = RGB2Y4M(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
+            playbackConverter = RGB2Y4M_bgra(out_video, playback_frames, os.getcwd() + '/' + 'playback-frames', 'playback', WIDTH, HEIGHT)
             playbackConverter.convert()
 
 print 'converting capture frames'
@@ -214,7 +253,7 @@ def capture_frames():
     if ( not os.path.exists(os.getcwd() + '/capture-frames/capture.y4m') ):
         capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
         with open(CAPTURE_VIDEO, 'r') as in_video:
-            captureConverter = RGB2Y4M(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
+            captureConverter = RGB2Y4M_uyvy422(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
             captureConverter.convert()
 
 # run the functions
