@@ -92,28 +92,18 @@ class RGB2Y4M_bgra:
 
         rawfilename = self.dirname + "/" + self.filename + ".raw"
         print "Appending frames to %s" %rawfilename
+        print "num frames:", len(self.frames)
         with open(rawfilename, "wb") as rawfile:
             for frameidx in sorted(self.frames):
                 self.video.seek(frameidx * self.framesize)
                 frame = self.video.read(self.framesize)
                 rawfile.write(frame)
         #This is bad, change to subprocess.check_call
-        os.system("avconv -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format bgra -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 -y %s" %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
-
-def get_lines_from_log_file(log_filename):
-    lines = open(log_filename, 'r').read().split('\n')
-        
-    # remove comment lines
-    lines = filter(lambda line: re.match('^\s*#.*', line) is None, lines)
-
-    # remove blank lines
-    lines = filter(lambda line: re.match('^\s*$', line) is None, lines)
-    
-    return lines
+        os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt bgra -i %s -vf "drawbox=x=1034:y=0:w=246:h=148:color=black:t=max" -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
 
 class RGB2Y4M_uyvy422:
 
-    def __init__(self, videofile, frames, dirname, filename, width=1280, height=720, bytesPerPixel=4):
+    def __init__(self, videofile, frames, dirname, filename, width=1280, height=720, bytesPerPixel=2):
         """
         frames should be list of frame index in video
         """
@@ -131,13 +121,14 @@ class RGB2Y4M_uyvy422:
 
         rawfilename = self.dirname + "/" + self.filename + ".raw"
         print "Appending frames to %s" %rawfilename
+        print "num frames:", len(self.frames)
         with open(rawfilename, "wb") as rawfile:
             for frameidx in sorted(self.frames):
                 self.video.seek(frameidx * self.framesize)
                 frame = self.video.read(self.framesize)
                 rawfile.write(frame)
         #This is bad, change to subprocess.check_call
-        os.system("avconv -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format uyvy422 -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 -y %s" %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
+        os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt uyvy422 -i %s -vf "drawbox=x=1034:y=0:w=246:h=148:color=black:t=max" -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
 
 def get_lines_from_log_file(log_filename):
     lines = open(log_filename, 'r').read().split('\n')
