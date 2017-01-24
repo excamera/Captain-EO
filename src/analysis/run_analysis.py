@@ -91,14 +91,12 @@ class RGB2Y4M:
             os.mkdir(self.dirname)
 
         rawfilename = self.dirname + "/" + self.filename + ".raw"
-        """
         print "Appending frames to %s" %rawfilename
         with open(rawfilename, "wb") as rawfile:
             for frameidx in sorted(self.frames):
                 self.video.seek(frameidx * self.framesize)
                 frame = self.video.read(self.framesize)
                 rawfile.write(frame)
-        """
         #This is bad, change to subprocess.check_call
         os.system("avconv -f rawvideo -video_size 1280x720 -framerate 60 -pixel_format bgra -i %s -f yuv4mpegpipe -pix_fmt yuv444p -s 1280x720 -r 60 -y %s" %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
 
@@ -220,10 +218,15 @@ def capture_frames():
             captureConverter.convert()
 
 # run the functions
-pool = mp.Pool(processes=2)
-pool.apply(playback_frames)
-pool.apply(capture_frames)
+p1 = mp.Process(target=playback_frames)
+p2 = mp.Process(target=capture_frames)
             
+p1.start()
+p2.start()
+
+p1.join()
+p2.join()
+
 print 'performing ssim computations'
 if ( not os.path.exists(os.getcwd() + '/.ssim.log') ):
     os.system('/home/captaineo/captain-eo/third_party/daala_tools/daala/dump_ssim -p 8 %s/playback-frames/playback.y4m %s/capture-frames/capture.y4m | tee .ssim.log' % (os.getcwd(), os.getcwd()))
