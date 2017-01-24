@@ -110,19 +110,28 @@ int main(int argc, char *argv[])
     if (config.m_uplinkTrace != NULL && config.m_downlinkTrace != NULL)
     {
         std::vector<std::string> args = {   
-            "/home/john/Work/multisend/sender/cellsim", 
+            "/home/captaineo/multisend/sender/cellsim-onoff", 
             config.m_uplinkTrace,
             config.m_downlinkTrace,
             "0",
             "eth1",
             "eth0"
         };
+
+
         if (config.m_uplinkLogFile != NULL)
         {
             args.push_back(config.m_uplinkLogFile);
-            if (config.m_downlinkLogFile != NULL)
-                args.push_back(config.m_downlinkLogFile);
+            if (config.m_downlinkLogFile != NULL) 
+	      args.push_back(config.m_downlinkLogFile);
         }
+	
+	args.push_back("0.2");
+	args.push_back("5");
+
+	if ( args.size() != 10 ){
+	  throw std::runtime_error("Not enough args passed to cellsim");
+	}
 
         command_process = std::unique_ptr<ChildProcess>(
             new ChildProcess( "cellsim", [&]() {
