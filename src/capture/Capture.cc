@@ -190,9 +190,9 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
                     std::lock_guard<std::mutex> lg(frame_queue_lock);
                     videoFrame->AddRef();
                     frame_queue.push(videoFrame);
-                    // ssize_t ret = write(g_videoOutputFile, frameBytes, framesize);
-                    // if (ret < 0)
-                    //     fprintf(stderr, "Cannot write to file.\n");
+		    ssize_t ret = write(g_videoOutputFile, frameBytes, framesize);
+		    if (ret < 0)
+		      fprintf(stderr, "Cannot write to file.\n");
                 }
             }
 
