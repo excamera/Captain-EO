@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 SCRIPT_FILEPATH=$(readlink -e ${BASH_SOURCE[0]})
 SCRIPT_DIRPATH=$(dirname $SCRIPT_FILEPATH)
