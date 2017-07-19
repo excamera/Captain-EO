@@ -99,7 +99,8 @@ class RGB2Y4M_bgra:
                 frame = self.video.read(self.framesize)
                 rawfile.write(frame)
         #This is bad, change to subprocess.check_call
-        os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt bgra -i %s -vf "color=black:246x148 [over]; [in][over] overlay=1034:0 [out]" -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
+        #os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt bgra -i %s -vf "color=black:246x148 [over]; [in][over] overlay=1034:0 [out]" -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
+        os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt bgra -i %s -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
 
 class RGB2Y4M_uyvy422:
 
@@ -128,7 +129,8 @@ class RGB2Y4M_uyvy422:
                 frame = self.video.read(self.framesize)
                 rawfile.write(frame)
         #This is bad, change to subprocess.check_call
-        os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt uyvy422 -i %s -vf "color=black:246x148 [over]; [in][over] overlay=1034:0 [out]" -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
+        #os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt uyvy422 -i %s -vf "color=black:246x148 [over]; [in][over] overlay=1034:0 [out]" -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
+        os.system('avconv -f rawvideo -video_size 1280x720 -r 60 -pix_fmt uyvy422 -i %s -f yuv4mpegpipe -r 60 -pix_fmt yuv444p -s 1280x720 -y %s' %(rawfilename, self.dirname + "/" + self.filename + ".y4m"))
 
 def get_lines_from_log_file(log_filename):
     lines = open(log_filename, 'r').read().split('\n')
@@ -244,7 +246,8 @@ def capture_frames():
     if ( not os.path.exists(os.getcwd() + '/capture-frames/capture.y4m') ):
         capture_frames = [frame[1].frame_index for frame in filter(lambda x: x[1] is not None, playback_capture_frame_correspondence)]
         with open(CAPTURE_VIDEO, 'r') as in_video:
-            captureConverter = RGB2Y4M_uyvy422(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
+            #captureConverter = RGB2Y4M_uyvy422(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
+            captureConverter = RGB2Y4M_bgra(in_video, capture_frames, os.getcwd() + '/' + 'capture-frames', 'capture', WIDTH, HEIGHT)
             captureConverter.convert()
 
 # run the functions
