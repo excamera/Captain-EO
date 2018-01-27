@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     if (config.m_uplinkTrace != NULL && config.m_downlinkTrace != NULL)
     {
         std::vector<std::string> args = {   
-            "/home/captaineo/multisend/sender/cellsim-onoff", 
+            "/home/captaineo/multisend/sender/cellsim", 
             config.m_uplinkTrace,
             config.m_downlinkTrace,
             "0",
@@ -126,8 +126,8 @@ int main(int argc, char *argv[])
 	      args.push_back(config.m_downlinkLogFile);
         }
 	
-	args.push_back("0.2");
-	args.push_back("5");
+	args.push_back("20000");
+	args.push_back("250");
 
 	if ( args.size() != 10 ){
 	  throw std::runtime_error("Not enough args passed to cellsim");
