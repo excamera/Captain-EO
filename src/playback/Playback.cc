@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     if (config.m_uplinkTrace != NULL && config.m_downlinkTrace != NULL)
     {
         std::vector<std::string> args = {   
-            "/home/captaineo/multisend/sender/cellsim", 
+            "/home/captaineo/multisend/sender/cellsim-single-loss", 
             config.m_uplinkTrace,
             config.m_downlinkTrace,
             "0",
