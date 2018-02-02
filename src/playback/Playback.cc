@@ -126,8 +126,8 @@ int main(int argc, char *argv[])
 	      args.push_back(config.m_downlinkLogFile);
         }
 	
-	args.push_back("20000");
-	args.push_back("250");
+	args.push_back("150000");
+	args.push_back("1000");
 
 	if ( args.size() != 10 ){
 	  throw std::runtime_error("Not enough args passed to cellsim");
