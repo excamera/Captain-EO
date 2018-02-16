@@ -110,19 +110,28 @@ int main(int argc, char *argv[])
     if (config.m_uplinkTrace != NULL && config.m_downlinkTrace != NULL)
     {
         std::vector<std::string> args = {   
-            "/home/john/Work/multisend/sender/cellsim", 
-            config.m_uplinkTrace,
-            config.m_downlinkTrace,
-            "0",
-            "eth1",
-            "eth0"
+            "/home/captaineo/multisend/sender/cellsim-emulated-wifi", 
+            config.m_uplinkTrace, // 1
+            config.m_downlinkTrace, // 2
+            "0.0", // 3
+            "0.0477", //4
+            "28", // 5
+            "28", // 6
+            "1024", // 7
+            "14", // 8
+            "eth1", // 9
+            "eth0", // 10
         };
-        if (config.m_uplinkLogFile != NULL)
+
+        if (config.m_uplinkLogFile == NULL or
+            config.m_downlinkLogFile == NULL)
         {
-            args.push_back(config.m_uplinkLogFile);
-            if (config.m_downlinkLogFile != NULL)
-                args.push_back(config.m_downlinkLogFile);
+            std::cerr << "No uplink or downlink logfile." << std::endl;
+            return EXIT_FAILURE;
         }
+
+        args.push_back(config.m_uplinkLogFile); // 11
+        args.push_back(config.m_downlinkLogFile); // 12
 
         command_process = std::unique_ptr<ChildProcess>(
             new ChildProcess( "cellsim", [&]() {
